@@ -34,6 +34,4 @@ class Config:
 
 
 config = Config()
-
-# 常量区（shared/constants.py 里直接 from config import config）
 SERVER_PUBLIC_URL = config.SERVER_URL
