@@ -15,8 +15,8 @@ class Beacon(Base):
     """
     __tablename__ = 'beacons'
 
-    # Beacon ID 是唯一标识符
-    id = Column(String(36), primary_key=True)
+    # Beacon ID 是唯一标识符，SHA256 的 Hex 字符串长度是 64 个字符
+    id = Column(String(64), primary_key=True)
 
     # 核心信息
     ip_address = Column(String(45), nullable=False)

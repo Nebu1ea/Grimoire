@@ -27,6 +27,7 @@ class Config:
     # ========= beacon 行为 =========
     DEFAULT_JITTER = (5, 15)             # 心跳随机范围（秒）
     MAX_RETRY = 5
+    STALE_THRESHOLD_SECONDS = 600
 
     # ========= 前端相关 =========
     THEME = "cyberpunk"                  # 还没想好,也还没开始写
