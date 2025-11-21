@@ -39,4 +39,7 @@ class Config:
     # ========= 数据库配置  =========
     DATABASE_URI = 'mysql+pymysql://root:123456@localhost:3306/grimoire_db'
 
+    # ========= 调度器  =========
+    CLEANUP_INTERVAL_MINUTES = 10
+
 config = Config()

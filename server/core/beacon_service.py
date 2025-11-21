@@ -7,20 +7,11 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List
 
 
-# 字符串类型提示避免循环导入风险
-class GrimoireCryptoManager: pass
-
-
 class GrimoireBeaconService:
     """
     Beacon 服务层：处理 Beacon 的生命周期管理、数据库注册和状态更新。
     不维护 IP 缓存，依赖 SF 进行会话识别。
     """
-
-    def __init__(self, crypto_mgr: 'GrimoireCryptoManager'):
-        # 仍然保留对 GrimoireCryptoManager 的引用，方便后续调用其服务
-        self.crypto_mgr = crypto_mgr
-
     def register_new_beacon(self, db: Session, beacon_id: str, ip_address: str, initial_data: Dict[str, Any]) -> Beacon:
         """
         处理 Beacon 首次签入，将新 Beacon 注册到数据库。

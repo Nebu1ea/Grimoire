@@ -95,7 +95,7 @@ class GrimoireTaskService:
 
         print(f"[{task.beacon_id[:8]}]: Task {task_id} result recorded.")
 
-    def process_and_get_task(self, db: Session, beacon_id: str, plaintext_data: bytes) -> Dict[str, Any]:
+    def process_and_get_task(self, db: Session, beacon_id: str, plaintext_bytes: bytes) -> Dict[str, Any]:
         """
         处理 Beacon 的心跳请求,分别有两个步骤：
             1. 尝试解析回传数据，并调用 record_output。
@@ -108,7 +108,7 @@ class GrimoireTaskService:
         try:
             # 解析 Beacon 回传的 JSON 数据
             # 假设 Beacon 回传的 JSON 格式为: {"task_id": 123, "output": "..."}
-            beacon_data: Dict[str, Any] = json.loads(plaintext_data.decode('utf-8'))
+            beacon_data: Dict[str, Any] = json.loads(plaintext_bytes.decode('utf-8'))
 
             if 'task_id' in beacon_data and 'output' in beacon_data:
                 task_id = beacon_data['task_id']

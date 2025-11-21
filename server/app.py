@@ -7,13 +7,20 @@ from config import Config
 from server.api_routes import api_bp
 # 导入核心管理器和数据库管理
 from server.persistence.database import init_db, shutdown_session
-
+from server.scheduler import start_scheduler
+from shared.CryptoManager import GrimoireCryptoManager
+from server.core.task_service import GrimoireTaskService
+from server.core.beacon_service import GrimoireBeaconService
 
 
 def create_app():
     # 实例化 Flask 应用
     app = Flask(__name__)
     app.config.from_object(Config)
+    app.config['CRYPTO_MANAGER'] = GrimoireCryptoManager()
+    app.config['BEACON_SERVICE'] = GrimoireBeaconService()
+    app.config['TASK_SERVICE'] = GrimoireTaskService()
+
 
     # 初始化数据库连接和模型
     try:
@@ -31,6 +38,8 @@ def create_app():
     # 注册路由蓝图
     app.register_blueprint(api_bp)
     # app.register_blueprint(web_bp)
+
+    start_scheduler(app)
 
     return app
 
