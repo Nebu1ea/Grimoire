@@ -79,7 +79,7 @@ class GrimoireTaskService:
             print(f"WARNING: Output received for task {task_id} in status {task.status}")
 
 
-        # 状态转换：更新任务状态为 COMPLETED
+        # 更新任务状态为 COMPLETED
         task.status = 'COMPLETED'
 
         # 记录输出 (使用 TaskOutput 模型)
@@ -107,7 +107,7 @@ class GrimoireTaskService:
 
         try:
             # 解析 Beacon 回传的 JSON 数据
-            # 假设 Beacon 回传的 JSON 格式为: {"task_id": 123, "output": "..."}
+            # Beacon 回传的 JSON 格式为: {"task_id": 123, "output": "..."}
             beacon_data: Dict[str, Any] = json.loads(plaintext_bytes.decode('utf-8'))
 
             if 'task_id' in beacon_data and 'output' in beacon_data:
