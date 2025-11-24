@@ -61,7 +61,7 @@ def get_db_session():
         DatabaseSessionManager.remove()
 
 
-def shutdown_session():
+def shutdown_session(exception=None):
     """
     在 Flask 请求结束后移除和清理会话。
     """

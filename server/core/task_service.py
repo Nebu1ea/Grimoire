@@ -1,5 +1,5 @@
 import json
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from server.persistence.models import Task, TaskOutput, Beacon
 from sqlalchemy.orm import Session
@@ -133,3 +133,27 @@ class GrimoireTaskService:
         except Exception as e:
             print(f"ERROR: Task processing failed for {beacon_id[:8]}: {e}")
             return default_response
+
+
+    def get_task_output_by_id(self, db: Session, task_id: int) -> Optional[Any]:
+        """
+        根据任务ID查询任务本身及其输出。
+        使用 LEFT JOIN，即使没有输出 (TaskOutput)，也能返回 Task 记录。
+        """
+
+        # 执行关联查询 (Task LEFT JOIN TaskOutput)
+        result = db.query(Task, TaskOutput).outerjoin(TaskOutput, Task.task_id == TaskOutput.task_id).filter(Task.task_id == task_id).first()
+
+        # 检查结果
+        if result is None:
+            return None
+
+        # 结构将查询结果 (Task对象, TaskOutput对象) 封装结构
+        # 使用一个简单的属性对象来命名元组，便于在 operator_routes.py 中访问
+        class TaskResultInfo:
+            def __init__(self, task, output):
+                self.task = task
+                self.output = output
+
+        task_obj, output_obj = result
+        return TaskResultInfo(task=task_obj, output=output_obj)
