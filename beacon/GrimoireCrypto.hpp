@@ -24,13 +24,6 @@ namespace Grimoire::Crypto {
             ~GrimoireCrypto();
 
             /**
-             * @brief 密钥协商步骤：生成临时密钥对，计算共享密钥，并返回临时公钥。
-             * @param server_public_key_b64 服务器的永久公钥（Base64编码）。
-             * @return 客户端的临时公钥（Base64编码），用于发送给服务器。
-             */
-            std::string InitialKeyExchange(const std::string& server_public_key_b64);
-
-            /**
              * @brief 加密 Payload：使用共享会话密钥对数据进行 AES-GCM 加密。
              * @param plaintext_payload 要加密的数据（原始字节）。
              * @return 密文 (IV + Ciphertext + Tag + SF)，Base64编码。
@@ -44,15 +37,31 @@ namespace Grimoire::Crypto {
              */
             std::vector<unsigned char> DecryptPayload(const std::string& ciphertext_b64);
 
+
+            /**
+             * @brief 用于 InitialKeyExchange 阶段的临时私钥
+             * @return 临时密钥字符串
+             */
+            std::string GenerateClientKey();
+
+
+            /**
+             * @brief 协商密钥
+             * @param server_public_key_b64 服务器发来的公钥
+             * @return 解密后的原始数据（JSON Body 字节）。
+             */
+            bool CompleteKeyDerivation(const std::string& server_public_key_b64);
+
             /**
              * @brief 获取 Beacon 的永久会话指纹/身份 (Base64编码的永久公钥)。
+             * [[nodiscard]]保证变量会被使用
              */
-            std::string GetBeaconSessionFingerprint() const;
+            [[nodiscard]] std::string GetBeaconSessionFingerprint() const;
 
         private:
             // 协商后的共享会话密钥 (用于 AES-GCM 加密)
             std::vector<unsigned char> session_key_;
-
+            std::vector<unsigned char> temp_secret_key_;
             // Beacon ID (永久公钥，作为 Session Fingerprint)
             std::string beacon_id_;
     };

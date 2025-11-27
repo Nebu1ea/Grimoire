@@ -33,57 +33,6 @@ namespace Grimoire::Crypto {
         return beacon_id_;
     }
 
-    // --- 实现 InitialKeyExchange ---
-    std::string GrimoireCrypto::InitialKeyExchange(const std::string& server_public_key_b64) {
-        // 解码服务器永久公钥
-        std::vector<unsigned char> server_public_key = Utils::Base64Decode(server_public_key_b64);
-
-        // 校验密钥长度
-        if (server_public_key.size() != crypto_box_PUBLICKEYBYTES) {
-            throw std::runtime_error("InitialKeyExchange: Invalid server public key size.");
-        }
-
-        // 生成临时密钥对
-        std::vector<unsigned char> temp_public_key(crypto_box_PUBLICKEYBYTES);
-        std::vector<unsigned char> temp_secret_key(crypto_box_SECRETKEYBYTES);
-
-        // libsodium 提供了这个函数来生成用于密钥协商的临时密钥对
-        crypto_box_keypair(temp_public_key.data(), temp_secret_key.data());
-
-        // 协商共享会话密钥 (Derive Shared Session Key)
-        // X25519 ECDH 的核心步骤
-        session_key_.resize(crypto_box_BEFORENMBYTES);
-
-        // 共享密钥存储位置，服务器公钥，客户端临时私钥
-        if (crypto_box_beforenm(
-            session_key_.data(),             // 共享密钥 (K)
-            server_public_key.data(),        // 接收方公钥 (服务器永久公钥)
-            temp_secret_key.data()           // 发送方私钥 (客户端临时私钥)
-        ) != 0) {
-            throw std::runtime_error("InitialKeyExchange: Shared key derivation failed.");
-        }
-
-
-        std::vector<unsigned char> session_key_hash(crypto_hash_sha256_BYTES);
-
-        if (crypto_hash_sha256(
-        session_key_hash.data(),
-        session_key_.data(),
-        session_key_.size()
-        ) != 0) {
-            throw std::runtime_error("InitialKeyExchange: SHA256 hash failed.");
-        }
-
-        beacon_id_ = Utils::HexEncode(session_key_hash);
-        // 清理内存中的临时私钥
-        sodium_memzero(temp_secret_key.data(), temp_secret_key.size());
-
-        std::cout << "[Crypto] Shared Session Key derived successfully (Forward Secrecy enabled)." << std::endl;
-
-        // 返回临时公钥给服务器（Base64 编码）
-        return Utils::Base64Encode(temp_public_key);
-    }
-
     // --- 实现 EncryptPayload ---
     std::string GrimoireCrypto::EncryptPayload(const std::vector<unsigned char>& plaintext_payload) {
         if (beacon_id_.empty() || session_key_.empty()) {
@@ -201,6 +150,65 @@ namespace Grimoire::Crypto {
         std::cout << "[Crypto] Payload decrypted successfully. Plaintext size: " << plaintext.size() << " bytes." << std::endl;
 
         return plaintext;
+    }
+
+
+    std::string GrimoireCrypto::GenerateClientKey() {
+        // 准备密钥容器
+        std::vector<unsigned char> temp_public_key(crypto_box_PUBLICKEYBYTES);
+        temp_secret_key_.resize(crypto_box_SECRETKEYBYTES); // 使用成员变量
+
+        // 生成临时密钥对
+        if (crypto_box_keypair(temp_public_key.data(), temp_secret_key_.data()) != 0) {
+            throw std::runtime_error("GenerateClientKey: Ephemeral keypair generation failed.");
+        }
+
+        std::cout << "[Crypto] Ephemeral keypair generated." << std::endl;
+
+        // 返回临时公钥（Base64 编码）
+        return Utils::Base64Encode(temp_public_key);
+    }
+
+    bool GrimoireCrypto::CompleteKeyDerivation(const std::string& server_public_key_b64) {
+        // 检查临时私钥是否存在 (必须先调用 GenerateClientKey)
+        if (temp_secret_key_.empty()) {
+            throw std::runtime_error("CompleteKeyDerivation: Ephemeral secret key is missing.");
+        }
+
+        // 解码服务器永久公钥
+        std::vector<unsigned char> server_public_key = Utils::Base64Decode(server_public_key_b64);
+        if (server_public_key.size() != crypto_box_PUBLICKEYBYTES) {
+            throw std::runtime_error("CompleteKeyDerivation: Invalid server public key size.");
+        }
+
+        // 协商共享会话密钥
+        session_key_.resize(crypto_box_BEFORENMBYTES);
+        if (crypto_box_beforenm(
+            session_key_.data(),
+            server_public_key.data(),
+            temp_secret_key_.data()          // 使用成员变量存储的临时私钥
+        ) != 0) {
+            throw std::runtime_error("CompleteKeyDerivation: Shared key derivation failed.");
+        }
+
+        // 清理内存中的临时私钥，防止泄露
+        sodium_memzero(temp_secret_key_.data(), temp_secret_key_.size());
+        temp_secret_key_.clear(); // 清空容器
+
+        // 计算 SHA256 会话指纹 (SF)
+        std::vector<unsigned char> session_key_hash(crypto_hash_sha256_BYTES);
+        crypto_hash_sha256(
+            session_key_hash.data(),
+            session_key_.data(),
+            session_key_.size()
+        );
+
+        // Hex 编码并存储 SF
+        beacon_id_ = Utils::HexEncode(session_key_hash);
+
+        std::cout << "[Crypto] Shared Session Key derived successfully. SF: " << beacon_id_.substr(0, 8) << "..." << std::endl;
+
+        return true;
     }
 
 } // namespace Grimoire::Crypto
