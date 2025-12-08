@@ -195,6 +195,11 @@ namespace Grimoire::Crypto {
         sodium_memzero(temp_secret_key_.data(), temp_secret_key_.size());
         temp_secret_key_.clear(); // 清空容器
 
+        // 清理临时公钥，防止溯源
+        sodium_memzero(server_public_key.data(), server_public_key.size());
+        server_public_key.clear();
+
+
         // 计算 SHA256 会话指纹 (SF)
         std::vector<unsigned char> session_key_hash(crypto_hash_sha256_BYTES);
         crypto_hash_sha256(

@@ -25,10 +25,10 @@ namespace Grimoire::Agent {
 // 构造函数
 // ----------------------------------------------------
 GrimoireAgent::GrimoireAgent() {
-    // 1. 初始化加密模块：它是所有共享状态的管理者
+    // 初始化加密模块：它是所有共享状态的管理者
     crypto_manager_ = std::make_shared<GrimoireCrypto>();
 
-    // 2. 初始化通信模块：依赖于加密模块
+    // 初始化通信模块：依赖于加密模块
     comms_manager_ = std::make_unique<GrimoireComms>(crypto_manager_);
 }
 
