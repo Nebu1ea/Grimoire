@@ -1,10 +1,17 @@
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from server.persistence.models import Task, TaskOutput, Beacon
 from sqlalchemy.orm import Session
 from datetime import datetime
 
+
+# 结构将查询结果 (Task对象, TaskOutput对象) 封装结构
+# 使用一个简单的属性对象来命名元组，便于在 operator_routes.py 中访问
+class TaskResultInfo:
+    def __init__(self, task, output):
+        self.task = task
+        self.output = output
 
 class GrimoireTaskService:
     """
@@ -148,12 +155,24 @@ class GrimoireTaskService:
         if result is None:
             return None
 
-        # 结构将查询结果 (Task对象, TaskOutput对象) 封装结构
-        # 使用一个简单的属性对象来命名元组，便于在 operator_routes.py 中访问
-        class TaskResultInfo:
-            def __init__(self, task, output):
-                self.task = task
-                self.output = output
 
         task_obj, output_obj = result
         return TaskResultInfo(task=task_obj, output=output_obj)
+
+    def get_tasks_by_beacon_id(self, db: Session, beacon_id: str) -> List[TaskResultInfo]:
+        """
+        根据 Beacon ID (SF) 查询所有相关的 Task 及其输出。
+        使用 LEFT JOIN，即使没有输出 (TaskOutput)，也能返回 Task 记录。
+        """
+
+        # 执行关联查询 (Task LEFT JOIN TaskOutput)
+        # 按 beacon_id 过滤，并使用 .all() 获取所有结果
+        results = db.query(Task, TaskOutput).outerjoin(TaskOutput, Task.task_id == TaskOutput.task_id).filter(Task.beacon_id == beacon_id).order_by(Task.assigned_at.desc()).all()
+
+        # 封装结果
+        task_info_list: List[TaskResultInfo] = []
+        for task_obj, output_obj in results:
+            # 将 (Task对象, TaskOutput对象) 封装成 TaskResultInfo
+            task_info_list.append(TaskResultInfo(task=task_obj, output=output_obj))
+
+        return task_info_list
