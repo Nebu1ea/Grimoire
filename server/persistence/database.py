@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
-from server.persistence.models import Base
+
+import config
+from server.persistence.models import Base, Operator
 from contextlib import contextmanager
 from config import Config
 
@@ -37,6 +39,40 @@ def init_db():
     DatabaseSessionManager = scoped_session(
         sessionmaker(autocommit=False, autoflush=False, bind=ConnectEngine)
     )
+
+
+    # 使用 session manager 获取一个 session
+    session = DatabaseSessionManager()
+
+    try:
+        # 检查 'admin' 账户是否存在
+        admin_exists = session.query(Operator).filter_by(username=config.Config.DEFAULT_ADMIN_USERNAME).first()
+
+        if not admin_exists:
+            print(f"INFO: Creating default admin operator: '{config.Config.DEFAULT_ADMIN_USERNAME}'")
+
+            default_admin = Operator(username=config.Config.DEFAULT_ADMIN_USERNAME)
+            # 2. 设置密码（会进行哈希处理）
+            default_admin.set_password(config.Config.DEFAULT_ADMIN_PASSWORD)
+
+            # 3. 添加到会话并提交
+            session.add(default_admin)
+            session.commit()
+
+            print("INFO: Default admin created successfully.")
+            print(f"Username: {config.Config.DEFAULT_ADMIN_USERNAME}")
+            print(f"Password: {config.Config.DEFAULT_ADMIN_PASSWORD} (PLEASE CHANGE IMMEDIATELY!)")
+        else:
+            print("INFO: Default admin operator already exists. Skipping creation.")
+
+    except Exception as e:
+        # 4. 如果出现任何错误，回滚并打印错误
+        session.rollback()
+        print(f"ERROR: Failed to create default admin operator. Details: {e}")
+
+    finally:
+        # 5. 关闭 session
+        session.close()
 
 # 用这个钻饰使其可以让with调用
 @contextmanager

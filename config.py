@@ -38,6 +38,10 @@ class Config:
 
     # ========= 数据库配置  =========
     DATABASE_URI = 'mysql+pymysql://root:123456@localhost:3306/grimoire_db'
+    DEFAULT_ADMIN_USERNAME = 'admin'
+    DEFAULT_ADMIN_PASSWORD = 'password'
+
+
 
     # ========= 调度器  =========
     CLEANUP_INTERVAL_MINUTES = 10

@@ -2,7 +2,7 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-
+from werkzeug.security import check_password_hash, generate_password_hash
 
 # 基类
 Base = declarative_base()
@@ -92,3 +92,22 @@ class TaskOutput(Base):
     # 依旧是调试消息
     def __repr__(self):
         return f"<TaskOutput(task_id={self.task_id}, len={len(self.output_data)})>"
+
+
+class Operator(Base):
+    __tablename__ = 'operators'
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String(64), index=True, unique=True, nullable=False)
+    password_hash = Column(String(128), nullable=False)
+
+    def set_password(self, password):
+        """将密码转换为哈希并存储"""
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        """验证密码"""
+        return check_password_hash(self.password_hash, password)
+
+    def __repr__(self):
+        return f'<Operator {self.username}>'

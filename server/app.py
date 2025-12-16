@@ -6,6 +6,7 @@ from server.api_routes import api_bp
 from server.core.beacon_service import GrimoireBeaconService
 from server.core.task_service import GrimoireTaskService
 from server.operator_routes import operator_bp
+from server.auth_routes import auth_bp
 # 导入核心管理器和数据库管理
 from server.persistence.database import init_db, shutdown_session
 from server.scheduler import start_scheduler
@@ -37,6 +38,8 @@ def create_app():
     # 注册路由蓝图
     app.register_blueprint(api_bp)
     app.register_blueprint(operator_bp)
+    app.register_blueprint(auth_bp)
+
 
     start_scheduler(app)
 

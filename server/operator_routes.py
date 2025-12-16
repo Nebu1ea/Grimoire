@@ -1,6 +1,8 @@
 # 操作的地方
 
 from flask import Blueprint, jsonify, current_app, request
+from flask_jwt_extended import jwt_required
+
 from server.persistence.database import get_db_session
 
 # 蓝图定义，URL 前缀为 /operator
@@ -18,6 +20,7 @@ def get_services():
 
 # 获取所有 Beacon 列表 (GET /operator/beacons)
 @operator_bp.route('/beacons', methods=['GET'])
+@jwt_required()
 def list_beacons():
     services = get_services()
     beacon_service = services['beacon_service']
@@ -44,6 +47,7 @@ def list_beacons():
 
 # 创建新任务 (POST /operator/task/create)
 @operator_bp.route('/task/create', methods=['POST'])
+@jwt_required()
 def create_new_task():
     services = get_services()
     task_service = services['task_service']
@@ -71,6 +75,7 @@ def create_new_task():
 
 # 查询特定任务结果 (GET /operator/task/output/<task_id>)
 @operator_bp.route('/task/output/<int:task_id>', methods=['GET'])
+@jwt_required()
 def get_task_output(task_id):
     services = get_services()
     task_service = services['task_service']
@@ -110,6 +115,7 @@ def get_task_output(task_id):
         })
 
 @operator_bp.route('/task/history/<string:beacon_id>', methods=['GET'])
+@jwt_required()
 def get_beacon_history(beacon_id):
     """
     根据 Beacon ID (SF) 查询该植入物的所有任务历史记录和输出。
