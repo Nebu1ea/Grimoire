@@ -6,7 +6,7 @@ from flask_jwt_extended import jwt_required
 from server.persistence.database import get_db_session
 
 # 蓝图定义，URL 前缀为 /operator
-operator_bp = Blueprint('operator_api', __name__, url_prefix='/operator')
+operator_bp = Blueprint('operator_api', __name__, url_prefix='/api/operator')
 
 def get_services():
     """从应用配置中获取所有共享的服务实例"""
@@ -24,7 +24,6 @@ def get_services():
 def list_beacons():
     services = get_services()
     beacon_service = services['beacon_service']
-
     with get_db_session() as db:
         # 获取所有 Beacon，按最后签入时间倒序排列
         beacons = beacon_service.get_all_beacons(db)
@@ -42,7 +41,7 @@ def list_beacons():
             for b in beacons
         ]
 
-    return jsonify(beacon_list)
+    return jsonify(beacon_list), 200
 
 
 # 创建新任务 (POST /operator/task/create)
