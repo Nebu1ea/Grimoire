@@ -22,7 +22,7 @@ class Config:
     HKDF_INFO = b"grimoire-2025-" + VERSION.encode('utf-8')
     IV_LENGTH = 12
     SF_LENGTH = 32
-
+    JWT_SECRET_KEY = "grimoire-secret-key"
 
     # ========= beacon 行为 =========
     DEFAULT_JITTER = (5, 15)             # 心跳随机范围（秒）

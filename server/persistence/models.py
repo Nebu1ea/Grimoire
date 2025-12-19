@@ -99,7 +99,7 @@ class Operator(Base):
 
     id = Column(Integer, primary_key=True)
     username = Column(String(64), index=True, unique=True, nullable=False)
-    password_hash = Column(String(128), nullable=False)
+    password_hash = Column(String(256), nullable=False)
 
     def set_password(self, password):
         """将密码转换为哈希并存储"""

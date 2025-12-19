@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
-from persistence.database import get_db_session
-from persistence.models import Operator
+from server.persistence.database import get_db_session
+from server.persistence.models import Operator
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -51,14 +51,14 @@ def login():
         # 查找用户
         operator = db.query(Operator).filter_by(username=username).first()
 
-    # 在 db 外或 db 内进行密码验证（避免将耗时操作卡在 db 事务中）
-    if operator is None or not operator.check_password(password):
-        return jsonify({"msg": "Bad username or password"}), 401
+        # 在 db 外或 db 内进行密码验证（避免将耗时操作卡在 db 事务中）
+        if operator is None or not operator.check_password(password):
+            return jsonify({"msg": "Bad username or password"}), 401
 
-    # 生成 JWT Access Token
-    access_token = create_access_token(identity=operator.id)
+        # 生成 JWT Access Token
+        access_token = create_access_token(identity=str(operator.id))
 
-    return jsonify(access_token=access_token), 200
+        return jsonify(access_token=access_token), 200
 
 
 @auth_bp.route('/change_password', methods=['POST'])

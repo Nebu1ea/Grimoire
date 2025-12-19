@@ -52,10 +52,10 @@ def init_db():
             print(f"INFO: Creating default admin operator: '{config.Config.DEFAULT_ADMIN_USERNAME}'")
 
             default_admin = Operator(username=config.Config.DEFAULT_ADMIN_USERNAME)
-            # 2. 设置密码（会进行哈希处理）
+            # 设置密码,进行哈希处理
             default_admin.set_password(config.Config.DEFAULT_ADMIN_PASSWORD)
 
-            # 3. 添加到会话并提交
+            # 添加到会话并提交
             session.add(default_admin)
             session.commit()
 
@@ -66,13 +66,13 @@ def init_db():
             print("INFO: Default admin operator already exists. Skipping creation.")
 
     except Exception as e:
-        # 4. 如果出现任何错误，回滚并打印错误
+        # 如果出现任何错误，回滚并打印错误
         session.rollback()
         print(f"ERROR: Failed to create default admin operator. Details: {e}")
 
     finally:
-        # 5. 关闭 session
-        session.close()
+        # 关闭 session
+        DatabaseSessionManager.remove()
 
 # 用这个钻饰使其可以让with调用
 @contextmanager
@@ -80,6 +80,8 @@ def get_db_session():
     """
     提供一个数据库会话供外部模块使用。
     """
+    global DatabaseSessionManager
+
     if DatabaseSessionManager is None:
         raise RuntimeError("Database not initialized. Call init_db() first.")
 
