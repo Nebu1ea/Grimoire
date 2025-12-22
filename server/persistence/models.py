@@ -26,7 +26,7 @@ class Beacon(Base):
     is_admin = Column(Boolean, default=False)
 
     # 状态和时间
-    status = Column(String(50), default='Active', nullable=False)  # Active, Stale, Lost三种状态
+    status = Column(String(50), default='Active', nullable=False)  # Active, Sleep, Dead三种状态
     first_seen = Column(DateTime, default=datetime.utcnow)
     last_checkin = Column(DateTime, default=datetime.utcnow)
 
@@ -48,7 +48,7 @@ class Task(Base):
     task_id = Column(Integer, primary_key=True)
 
     # 任务分配
-    beacon_id = Column(String(36), ForeignKey('beacons.id'), nullable=False)
+    beacon_id = Column(String(64), ForeignKey('beacons.id'), nullable=False)
 
     # 任务内容
     command = Column(String(255), nullable=False)

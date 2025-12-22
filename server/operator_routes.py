@@ -32,11 +32,12 @@ def list_beacons():
         beacon_list = [
             {
                 'id': b.id,
+                'user': b.username,
+                'os': b.os_info,
                 'ip_address': b.ip_address,
+                'last_checkin': b.last_checkin.isoformat(),
                 'status': b.status,
-                'last_seen': b.last_seen.isoformat(),
-                'sleep_interval': b.sleep_interval,
-                'initial_data': b.initial_data
+                # 'sleep_interval': b.sleep_interval
             }
             for b in beacons
         ]
