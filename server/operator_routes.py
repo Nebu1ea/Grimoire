@@ -65,9 +65,13 @@ def create_new_task():
             # TaskService 负责将任务写入数据库，状态为 PENDING
             task = task_service.create_task(db, beacon_id, command, arguments)
 
+
+            # 这里有个时间差，直接commit了
+            db.commit()
+            db.refresh(task)
         except ValueError as e:
             # 例如：如果 beacon_id 不存在或无效
-            return jsonify({'error': str(e)}), 404
+            return jsonify({'error': str(e)}), 500
 
         # 返回任务 ID 给操作员
         return jsonify({'message': 'Task created successfully', 'task_id': task.task_id}), 201
@@ -107,7 +111,6 @@ def get_task_output(task_id):
             'command': task.command,
             'arguments': task.arguments,
             'assigned_at': task.assigned_at.isoformat() if task.assigned_at else None,
-            'completed_at': task.completed_at.isoformat() if task.completed_at else None,
 
             # 核心返回内容
             'output_type': content_type,
