@@ -61,9 +61,23 @@ const currentRouteName = computed(() => route.name);
       </RouterLink>
 
 
-      <a href="#" class="p-2 rounded-lg text-gray-500 cursor-not-allowed">
-        File Browser (TBD)
-      </a>
+      <RouterLink
+          v-if="beaconStore.selectedBeaconId"
+          :to="{ name: 'FileBrowser', params: { id: beaconStore.selectedBeaconId } }"
+          :class="['p-2 rounded-lg transition-colors duration-150', {
+          'bg-cyan-700/50 text-white font-semibold': currentRouteName === 'FileBrowser',
+          'hover:bg-gray-700 text-gray-300': currentRouteName !== 'FileBrowser'
+      }]"
+      >
+        File Browser
+      </RouterLink>
+
+      <div
+          v-else
+          class="p-2 rounded-lg text-gray-600 cursor-not-allowed flex items-center select-none"
+      >
+        File Browser (No beacon selected)
+      </div>
     </nav>
   </div>
 </template>

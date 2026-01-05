@@ -142,12 +142,16 @@ export const useTerminalStore = defineStore('terminal', {
 
                 // 展示结果
                 if (output) {
+                    const decodedOutput = atob(output);
                     this.addLog(beaconId, {
                         type: 'output',
-                        content: atob(output),    //output得base64解码
+                        content: decodedOutput,    //output得base64解码
                         fullCommand: fullCommand,
                         timestamp: new Date().toLocaleTimeString(),
                     });
+
+                    // 这里为了对接FileExplorer,写个return
+                    return decodedOutput;
                 } else {
                     this.addLog(beaconId, {
                         type: 'error',
@@ -155,6 +159,7 @@ export const useTerminalStore = defineStore('terminal', {
                         content: `[!] Task ${taskId} timed out or returned no output.`,
                         timestamp: new Date().toLocaleTimeString(),
                     });
+                    return null;
                 }
 
             } catch (error: any) {
@@ -164,6 +169,7 @@ export const useTerminalStore = defineStore('terminal', {
                     content: `[!] Error: ${error.response?.data?.msg || 'Communication failed'}`,
                     timestamp: new Date().toLocaleTimeString(),
                 });
+                return null;
             } finally {
                 this.isSending = false;
             }
