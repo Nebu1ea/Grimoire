@@ -10,7 +10,7 @@ export interface Beacon {
     os: string;   //主机系统
     ip_address: string; // 外部 IP 或主机地址
     last_checkin: number; // 最后心跳时间戳（Unix 时间，秒）
-    status: 'active' | 'dead' | 'sleep'; // 状态
+    status: 'active' | 'dead' | 'stale'; // 状态
 }
 
 export const useBeaconStore = defineStore('beacon', {
