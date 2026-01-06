@@ -24,6 +24,12 @@ const router = createRouter({
             component: () => import('../views/TerminalView.vue'),
             meta: { requiresAuth: true }
         },
+        {
+            path: '/files/:id/',
+            name: 'FileBrowser',
+            component: () => import('../views/FileExplorer.vue'),
+            meta: { requiresAuth: true }
+        }
     ],
 });
 

@@ -119,6 +119,8 @@ class GrimoireTaskService:
 
             if 'task_id' in beacon_data and 'output' in beacon_data:
                 task_id = beacon_data['task_id']
+
+                # 这里的output在beacon是base64编码过的，到时候前端取出来的时候再解码
                 output_str = beacon_data['output']
 
                 # 记录结果
