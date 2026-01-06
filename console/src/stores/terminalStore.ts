@@ -11,7 +11,8 @@ interface LogEntry {
 export const useTerminalStore = defineStore('terminal', {
     state: () => ({
         logsMap: {} as Record<string, LogEntry[]>,
-        isSending: false,
+        // isSending: false,
+        isSending: {} as Record<string, boolean>,
         supportCommands: ['clear', 'shell', 'history', 'whoami', 'powershell', 'task_history', 'help', 'christmas']
     }),
 
@@ -19,6 +20,20 @@ export const useTerminalStore = defineStore('terminal', {
         // 工具函数：延迟
         sleep(ms: number) {
             return new Promise(resolve => setTimeout(resolve, ms));
+        },
+
+        isSendingTrue(beaconId: string) {
+          if (!this.isSending[beaconId]) {
+              this.isSending[beaconId] = true;
+          }
+          this.isSending[beaconId] = true;
+        },
+
+        clearSending(beaconId: string) {
+            if (!this.isSending[beaconId]) {
+                this.isSending[beaconId] = false;
+            }
+            this.isSending[beaconId] = false;
         },
 
         clearLogs(beaconId: string) {
@@ -71,7 +86,7 @@ export const useTerminalStore = defineStore('terminal', {
 
         //发送命令并轮询结果
         async sendCommand(beaconId: string, fullCommand: string) {
-            this.isSending = true;
+            this.isSendingTrue(beaconId);
 
             // 解析命令 (例如输入 "shell whoami" -> command: "shell", arguments: "whoami")
             const parts = fullCommand.trim().split(/\s+/);
@@ -171,13 +186,13 @@ export const useTerminalStore = defineStore('terminal', {
                 });
                 return null;
             } finally {
-                this.isSending = false;
+                this.clearLogs(beaconId);
             }
         },
 
 
         async fetchHistory(beaconId: string) {
-            this.isSending = true; // 复用加载状态，让终端显示正在查询
+            this.isSendingTrue(beaconId); // 复用加载状态，让终端显示正在查询
             try {
                 const response = await apiClient.get(`/operator/task/history/${beaconId}`);
                 const data = response.data;
@@ -201,7 +216,7 @@ export const useTerminalStore = defineStore('terminal', {
             } catch (error) {
                 this.addLog(beaconId, { type: 'error', fullCommand: 'task_history', content: 'Failed to fetch history.', timestamp: '' });
             } finally {
-                this.isSending = false;
+                this.clearSending(beaconId);
             }
         },
 

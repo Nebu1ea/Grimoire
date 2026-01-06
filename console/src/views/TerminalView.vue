@@ -29,7 +29,7 @@ const handleSend = async () => {
   const fullCommand = commandInput.value.trim();
 
 
-  if (!fullCommand || terminalStore.isSending) return;
+  if (!fullCommand || terminalStore.isSending[beaconId]) return;
 
   // 存入本地键盘历史
   localHistory.value.push(fullCommand);
@@ -219,7 +219,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div v-if="terminalStore.isSending" class="flex items-center space-x-2 text-cyan-600 italic">
+      <div v-if="terminalStore.isSending[beaconId]" class="flex items-center space-x-2 text-cyan-600 italic">
         <span class="inline-block w-2 h-4 bg-cyan-600 animate-blink"></span>
         <span>Awaiting encrypted response...</span>
       </div>
@@ -227,7 +227,7 @@ onMounted(() => {
 
     <div class="bg-gray-900 border-t border-cyan-900/50 p-4">
       <div class="flex items-center group">
-      <span :class="terminalStore.isSending ? 'text-gray-600' : 'text-cyan-500'" class="font-bold mr-3">
+      <span :class="terminalStore.isSending[beaconId] ? 'text-gray-600' : 'text-cyan-500'" class="font-bold mr-3">
         {{ currentBeacon?.user || 'operator' }}@grimoire:~$
       </span>
 
@@ -238,9 +238,9 @@ onMounted(() => {
             type="text"
             spellcheck="false"
 
-        :disabled="terminalStore.isSending"
+        :disabled="terminalStore.isSending[beaconId]"
 
-        :placeholder="terminalStore.isSending ? 'Awaiting beacon response... Please wait.' : 'Execute system command...'"
+        :placeholder="terminalStore.isSending[beaconId] ? 'Awaiting beacon response... Please wait.' : 'Execute system command...'"
 
         class="flex-1 bg-transparent border-none text-cyan-300 focus:ring-0 placeholder-cyan-900 font-mono disabled:cursor-not-allowed disabled:text-gray-600"
         autofocus
