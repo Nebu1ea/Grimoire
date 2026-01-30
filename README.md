@@ -1,6 +1,46 @@
 # Grimoire
 苦逼牛马的毕业设计
 
+## 启动手册
+
+目前还未写出一次性启动脚本，先发布记录。
+
+### beacon
+
+一共三个库:
+
+```
+.\vcpkg install libsodium:x64-windows
+.\vcpkg install curl:x64-windows
+.\vcpkg install nlohmann-json:x64-windows
+```
+
+后续调一下指向的vcpkg即可，这个是最复杂的，简化编译为后续日程。
+
+### console
+
+下个npm@11.6.2的随意nodejs版本，然后
+
+```
+cd Grimoire/console
+
+npm install
+
+npm run dev
+```
+
+### server
+
+这个最简单
+
+```python3.11.8
+cd Grimoire/server
+
+pip install requriements.txt
+ 
+python app.py
+```
+
 ## 通信协议
 
 ### 通信加密流程

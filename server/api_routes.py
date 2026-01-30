@@ -132,7 +132,7 @@ def secure_communication():
     # 解密输入
     payload = request.get_json().get('auth', '')
     if not payload:
-        return jsonify({'error': 'Missing Authentication'}), 400
+        return jsonify({'error': 'Missing Authentication'}), 400    # 没发payload过来
     try:
         plaintext_bytes, beacon_id = crypto_mgr.grimoire_decrypt(payload)
     except Exception as e:
