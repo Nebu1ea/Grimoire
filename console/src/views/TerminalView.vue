@@ -227,6 +227,8 @@ onMounted(() => {
 
     <div class="bg-gray-900 border-t border-cyan-900/50 p-4">
       <div class="flex items-center group">
+
+      /* 这里第一次isSending其实是null，不过是null也不影响使用，因为当第一次输入指令的时候，就有了 */
       <span :class="terminalStore.isSending[beaconId] ? 'text-gray-600' : 'text-cyan-500'" class="font-bold mr-3">
         {{ currentBeacon?.user || 'operator' }}@grimoire:~$
       </span>

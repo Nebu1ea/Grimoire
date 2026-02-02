@@ -29,6 +29,12 @@ const router = createRouter({
             name: 'FileBrowser',
             component: () => import('../views/FileExplorer.vue'),
             meta: { requiresAuth: true }
+        },
+        {
+            path: '/generator',
+            name: 'PayloadGenerator',
+            component: () => import('../views/PayloadGeneratorView.vue'),
+            meta: { requiresAuth: true }
         }
     ],
 });

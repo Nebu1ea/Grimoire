@@ -37,6 +37,9 @@ namespace Grimoire::Utils {
      * @brief 对 Hex 字符串进行解码
      */
     std::vector<unsigned char> HexDecode(const std::string& input_hex);
+
+
+    std::string GenerateRandomString(size_t length);
 } // namespace Grimoire::Utils
 
 

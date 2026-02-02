@@ -78,6 +78,17 @@ const currentRouteName = computed(() => route.name);
       >
         File Browser (No beacon selected)
       </div>
+
+      <RouterLink
+          :to="{ name: 'PayloadGenerator', params: { id: beaconStore.selectedBeaconId } }"
+          :class="['p-2 rounded-lg transition-colors duration-150', {
+          'bg-cyan-700/50 text-white font-semibold': currentRouteName === 'PayloadGenerator',
+          'hover:bg-gray-700 text-gray-300': currentRouteName !== 'PayloadGenerator'
+      }]"
+      >
+        PayloadGenerator
+      </RouterLink>
+
     </nav>
   </div>
 </template>

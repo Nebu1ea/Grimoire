@@ -136,4 +136,13 @@ namespace Grimoire::Utils
         decoded_buffer.resize(decoded_len);
         return decoded_buffer;
     }
+
+    std::string GenerateRandomString(size_t length) {
+        // 简单实现
+        std::string result;
+        for (size_t i = 0; i < length; ++i) {
+            result += 'a' + (i % 26);
+        }
+        return result;
+    }
 }
