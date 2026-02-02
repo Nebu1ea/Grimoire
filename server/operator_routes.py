@@ -259,5 +259,4 @@ def generate_payload():
     except subprocess.CalledProcessError as e:
         return jsonify({"error": "失败", "details": e.stderr or e.stdout}), 500
     finally:
-        shutil.rmtree(work_dir, ignore_errors=True)
         pass
