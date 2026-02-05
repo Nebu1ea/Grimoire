@@ -20,85 +20,130 @@ const goToTerminal = (beacon: { id: string | null; }) => {
 
 
 <template>
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
+  <div class="space-y-8 w-full max-w-6xl mx-auto p-4">
+
+    <div class="flex items-end justify-between border-b border-cyan-500/20 pb-4">
       <div>
-        <h1 class="text-2xl font-bold text-white font-mono tracking-tight">
-          HOST LOBBY <span class="text-cyan-500">_</span>
+        <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-cyan-100 font-mono tracking-tighter drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">
+          HOST_LOBBY
         </h1>
-        <p class="text-gray-400 text-sm">监控并管理所有已连接的 Beacon 实例</p>
+        <p class="text-cyan-600/70 text-xs font-mono tracking-[0.2em] mt-1 uppercase">
+          Active Beacon Monitoring System // Ver 0.2
+        </p>
       </div>
 
-      <div class="flex space-x-4">
-        <div class="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg">
-          <span class="text-gray-400 text-xs block uppercase">活跃总数</span>
-          <span class="text-cyan-400 text-xl font-bold">{{ beaconStore.activeCount }}</span>
+      <div class="flex items-center space-x-6">
+        <div class="group relative px-5 py-2 overflow-hidden rounded border border-cyan-500/20 bg-cyan-950/10 backdrop-blur-sm">
+          <div class="absolute inset-0 bg-cyan-500/5 group-hover:bg-cyan-500/10 transition-colors"></div>
+          <div class="relative flex flex-col items-end">
+            <span class="text-[10px] text-cyan-500/70 uppercase tracking-widest font-bold">Live Units</span>
+            <span class="text-2xl font-mono text-cyan-100 font-bold drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]">
+              {{ String(beaconStore.activeCount).padStart(2, '0') }}
+            </span>
+          </div>
         </div>
+
         <button
             @click="beaconStore.fetchBeacons()"
-            class="p-2 bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-lg transition-colors"
-            title="手动刷新"
+            class="relative p-3 group border border-cyan-500/20 rounded bg-black/20 hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all active:scale-95"
+            title="SYNC DATA"
         >
-          <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          <svg class="w-5 h-5 text-cyan-500 group-hover:animate-spin-slow transition-colors group-hover:text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
         </button>
       </div>
     </div>
 
-    <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden shadow-2xl">
+    <div class="relative rounded-xl overflow-hidden border border-white/5 bg-black/10 backdrop-blur-md shadow-2xl">
+      <div class="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent"></div>
+
       <table class="w-full text-left border-collapse">
         <thead>
-        <tr class="bg-gray-800/50 text-gray-400 text-xs uppercase tracking-wider">
-          <th class="px-6 py-4 font-semibold">状态</th>
-          <th class="px-6 py-4 font-semibold">标识 ID</th>
-          <th class="px-6 py-4 font-semibold">用户 @ 主机</th>
-          <th class="px-6 py-4 font-semibold">地址</th>
-          <th class="px-6 py-4 font-semibold">最后心跳</th>
-          <th class="px-6 py-4 font-semibold text-right">操作</th>
+        <tr class="border-b border-white/5 text-xs uppercase tracking-[0.15em] text-cyan-700/80 font-mono">
+          <th class="px-6 py-5 font-bold">Status</th>
+          <th class="px-6 py-5 font-bold">Beacon_ID</th>
+          <th class="px-6 py-5 font-bold">User <span class="text-fuchsia-800">@</span> Host</th>
+          <th class="px-6 py-5 font-bold">IP_Addr</th>
+          <th class="px-6 py-5 font-bold">Last_Heartbeat</th>
         </tr>
         </thead>
-        <tbody class="divide-y divide-gray-800 text-sm">
-        <tr
-            v-for="beacon in beaconStore.formattedBeacons"
-            :key="beacon.id"
-            @click="goToTerminal(beacon)"
-            class="hover:bg-cyan-900/10 cursor-pointer transition-colors group"
-        >
-          <td class="px-6 py-4">
+
+
+      <tbody class="divide-y divide-white/5 text-sm font-mono">
+      <tr
+          v-for="beacon in beaconStore.formattedBeacons"
+          :key="beacon.id"
+          @click="goToTerminal(beacon)"
+          class="group relative hover:bg-cyan-500/5 transition-all duration-300 cursor-pointer"
+      >
+        <td class="px-6 py-5">
+          <div class="flex items-center gap-3">
+            <div class="relative flex h-2.5 w-2.5">
+                  <span
+                      class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+                      :class="{
+                      'bg-green-400': beacon.status === 'active',
+                      'bg-red-500': beacon.status === 'dead',
+                      'bg-yellow-500': beacon.status === 'stale'
+                    }"
+                  ></span>
               <span
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border"
+                  class="relative inline-flex rounded-full h-2.5 w-2.5 shadow-[0_0_8px_currentColor]"
                   :class="{
-                  'bg-green-900/30 text-green-400 border-green-800': beacon.status === 'active',
-                  'bg-red-900/30 text-red-400 border-red-800': beacon.status === 'dead',
-                  'bg-yellow-900/30 text-yellow-400 border-yellow-800': beacon.status === 'sleep'
-                }"
-              >
-                <span class="w-1.5 h-1.5 rounded-full mr-1.5 animate-pulse" :class="beacon.status === 'active' ? 'bg-green-400' : 'bg-gray-400'"></span>
-                {{ beacon.status.toUpperCase() }}
-              </span>
-          </td>
-
-          <td class="px-6 py-4 font-mono text-cyan-500">{{ beacon.id.substring(0, 8) }}</td>
-          <td class="px-6 py-4 font-medium text-gray-200">{{ beacon.user }} <span class="text-gray-500">@</span> {{ beacon.os }}</td>
-          <td class="px-6 py-4 text-gray-400">{{ beacon.ip_address}}</td>
-          <td class="px-6 py-4 text-gray-400">{{ beacon.last_checkin}}</td>
-
-          <td class="px-6 py-4 text-right">
-            <button class="text-gray-500 group-hover:text-cyan-400 transition-colors">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 5l7 7-7 7M5 5l7 7-7 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-            </button>
-          </td>
-        </tr>
-
-        <tr v-if="beaconStore.beacons.length === 0">
-          <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-            <div class="flex flex-col items-center">
-              <svg class="w-12 h-12 mb-3 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9.172 9.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-              <p>暂无连接的 Beacon 实例，请等待上线...</p>
+                      'bg-green-500 text-green-500': beacon.status === 'active',
+                      'bg-red-500 text-red-500': beacon.status === 'dead',
+                      'bg-yellow-500 text-yellow-500': beacon.status === 'stale'
+                    }"
+              ></span>
             </div>
-          </td>
-        </tr>
-        </tbody>
+            <span class="text-[10px] font-bold tracking-widest uppercase"
+                  :class="beacon.status === 'active' ? 'text-green-400' : 'text-gray-500'">
+                {{ beacon.status }}
+            </span>
+          </div>
+        </td>
+
+        <td class="px-6 py-5">
+      <span class="px-2 py-1 rounded bg-cyan-500/10 text-cyan-400 text-xs border border-cyan-500/20 group-hover:border-cyan-500/50 transition-colors">
+        {{ beacon.id.substring(0, 8).toUpperCase() }}
+      </span>
+        </td>
+
+        <td class="px-6 py-5">
+          <div class="flex items-center text-gray-300 group-hover:text-white transition-colors">
+            <span class="font-bold">{{ beacon.user }}</span>
+            <span class="text-fuchsia-500 mx-1.5 opacity-50">@</span>
+            <span class="text-gray-400 group-hover:text-cyan-200">{{ beacon.os }}</span>
+          </div>
+        </td>
+
+        <td class="px-6 py-5 text-gray-500 group-hover:text-cyan-500/70">
+          {{ beacon.ip_address }}
+        </td>
+
+        <td class="px-6 py-5 text-gray-600 text-xs">
+          {{ beacon.last_checkin }}
+        </td>
+
+        <td class="px-6 py-5 text-right">
+        </td>
+      </tr>
+      </tbody>
       </table>
+
+      <div class="h-1 w-full bg-gradient-to-r from-cyan-900/0 via-cyan-900/30 to-cyan-900/0"></div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 定义一个慢速旋转，给雷达和刷新按钮用 */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+</style>

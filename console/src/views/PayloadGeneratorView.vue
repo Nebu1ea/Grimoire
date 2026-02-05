@@ -55,70 +55,134 @@ const generatePayload = async () => {
     isGenerating.value = false;
   }
 };
+
+const showDropdown = ref(false)
+const toggleDropdown = () => {
+  showDropdown.value = !showDropdown.value
+}
+
+const selectProtocol = (proto: any) => {
+  config.value.protocol = proto
+  showDropdown.value = false
+}
 </script>
 
 <template>
-  <div class="p-8 bg-gray-900 min-h-screen text-cyan-400">
-    <div class="max-w-2xl mx-auto bg-gray-800 border border-cyan-900/50 rounded-xl p-8 shadow-2xl">
-      <h2 class="text-2xl font-mono mb-6 border-b border-cyan-600/30 pb-4">
-        Payload Factory
-      </h2>
+  <div class="min-h-screen w-full flex items-center justify-center p-8 bg-transparent">
 
-      <div class="space-y-6">
-        <div>
-          <label class="block text-xs uppercase tracking-widest text-gray-500 mb-2">C2 Callback Host</label>
-          <input v-model="config.host" type="text"
-                 class="w-full bg-black/40 border border-gray-700 rounded p-3 focus:border-cyan-500 outline-none transition-all">
-        </div>
+    <div class="relative w-full max-w-xl group">
 
-        <div class="grid grid-cols-2 gap-4">
+      <div class="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-fuchsia-600 rounded-2xl opacity-10 group-hover:opacity-30 transition duration-1000 blur-xl"></div>
+
+      <div class="relative overflow-hidden rounded-2xl border border-cyan-500/10 bg-black/10 backdrop-blur-3xl p-8 md:p-10 shadow-2xl">
+
+        <div class="absolute top-0 left-0 h-[2px] w-full bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
+
+        <h2 class="mb-8 flex items-center text-2xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-cyan-100">
+          <span class="mr-3 text-fuchsia-500 animate-pulse">></span>
+          PAYLOAD_FACTORY
+        </h2>
+
+        <div class="space-y-6">
+          <div class="group/input relative">
+            <label class="mb-2 block text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-900 transition-colors group-focus-within/input:text-cyan-400">
+              C2 Callback Host
+            </label>
+            <div class="relative">
+              <input
+                  v-model="config.host"
+                  type="text"
+                  placeholder="127.0.0.1"
+                  class="w-full rounded-lg bg-cyan-950/10 p-3 text-cyan-100 placeholder-cyan-900/30 outline-none ring-1 ring-cyan-500/10 transition-all focus:ring-2 focus:ring-cyan-500/40"
+              >
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="group/input">
+              <label class="mb-2 block text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-900">Port</label>
+              <input
+                  v-model="config.port"
+                  type="text"
+                  class="w-full rounded-lg bg-cyan-950/10 p-3 text-cyan-100 outline-none ring-1 ring-cyan-500/10 focus:ring-2 focus:ring-cyan-500/40"
+              >
+            </div>
+            <div class="group/input relative">
+              <label class="mb-2 block text-[10px] font-bold uppercase tracking-[0.3em] text-fuchsia-900">
+                Protocol
+              </label>
+
+              <div class="relative">
+                <div
+                    @click="showDropdown = !showDropdown"
+                    class="w-full cursor-pointer rounded-lg bg-fuchsia-950/10 p-3 text-fuchsia-100 ring-1 ring-fuchsia-500/10 flex items-center justify-between focus:ring-2 focus:ring-fuchsia-500/40"
+                >
+                  <span>{{ config.protocol }}</span>
+                  <span :class="{'rotate-180': showDropdown}" class="text-fuchsia-500/50 text-[8px] transition-transform duration-300">▼</span>
+                </div>
+
+                <transition name="fade-slide">
+                  <div v-if="showDropdown" class="absolute left-0 right-0 mt-2 z-50 rounded-lg border border-fuchsia-500/20 bg-black/60 backdrop-blur-xl overflow-hidden shadow-2xl">
+                    <div
+                        v-for="opt in ['http://', 'https://']"
+                        :key="opt"
+                        @click="config.protocol = opt; showDropdown = false"
+                        class="px-4 py-3 hover:bg-fuchsia-500/20 cursor-pointer text-xs tracking-widest text-fuchsia-100/70 hover:text-fuchsia-300 transition-colors border-b border-fuchsia-500/5 last:border-0"
+                    >
+                      {{ opt }}
+                    </div>
+                  </div>
+                </transition>
+              </div>
+            </div>
+          </div>
+
           <div>
-            <label class="block text-xs uppercase tracking-widest text-gray-500 mb-2">Callback Port</label>
-            <input v-model="config.port" type="text"
-                   class="w-full bg-black/40 border border-gray-700 rounded p-3 focus:border-cyan-500 outline-none transition-all">
-          </div>
-          <div>
-            <label class="block text-xs uppercase tracking-widest text-gray-500 mb-2">Protocol</label>
-            <select v-model="config.protocol"
-                    class="w-full bg-black/40 border border-gray-700 rounded p-3 focus:border-cyan-500 outline-none transition-all appearance-none">
-              <option value="http://">HTTP</option>
-<!--              <option value="https://">HTTPS</option>-->
-            </select>
-          </div>
-        </div>
+            <label class="mb-3 block text-[10px] font-bold uppercase tracking-[0.3em] text-slate-600">Target System</label>
+            <div class="flex gap-3">
+              <button
+                  @click="config.platform = 'windows'"
+                  :class="['relative flex-1 overflow-hidden rounded-lg border py-3 text-xs transition-all duration-300',
+                  config.platform === 'windows'
+                    ? 'border-cyan-400 bg-cyan-500/10 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.1)]'
+                    : 'border-white/5 bg-white/5 text-slate-500 hover:border-white/10']"
+              >
+                <span class="relative z-10 flex items-center justify-center gap-2">WINDOWS</span>
+              </button>
 
-        <div>
-          <label class="block text-xs uppercase tracking-widest text-gray-500 mb-2">Target Platform</label>
-          <div class="flex space-x-4">
-            <button @click="config.platform = 'windows'"
-                    :class="['flex-1 p-4 rounded border transition-all', config.platform === 'windows' ? 'border-cyan-500 bg-cyan-900/20' : 'border-gray-700 bg-black/20 text-gray-500']">
-              Windows
+              <button
+                  @click="config.platform = 'linux'"
+                  :class="['relative flex-1 overflow-hidden rounded-lg border py-3 text-xs transition-all duration-300',
+                  config.platform === 'linux'
+                    ? 'border-cyan-400 bg-cyan-500/10 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.1)]'
+                    : 'border-white/5 bg-white/5 text-slate-500 hover:border-white/10']"
+              >
+                <span class="relative z-10 flex items-center justify-center gap-2">LINUX</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-8 border-t border-white/5 pt-6">
+            <div class="mb-4 min-h-[20px]">
+              <p v-if="statusMsg" :class="['font-mono text-[10px] tracking-widest', isGenerating ? 'text-yellow-500' : 'text-green-500']">
+                {{ statusMsg }}
+              </p>
+            </div>
+
+            <button
+                @click="generatePayload"
+                :disabled="isGenerating"
+                class="group relative w-full overflow-hidden rounded-lg bg-cyan-500/10 border border-cyan-500/30 py-3 font-bold text-cyan-400 transition-all hover:bg-cyan-500/20 active:scale-[0.98] disabled:opacity-20">
+              <span v-if="!isGenerating" class="tracking-[0.3em] text-sm">SUMMON_BEACON</span>
+              <span v-else class="flex items-center justify-center text-sm tracking-widest">
+                <svg class="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                FORGING...
+              </span>
             </button>
-            <button @click="config.platform = 'linux'"
-                    :class="['flex-1 p-4 rounded border transition-all', config.platform === 'linux' ? 'border-cyan-500 bg-cyan-900/20' : 'border-gray-700 bg-black/20 text-gray-500']">
-              Linux
-            </button>
           </div>
-        </div>
-
-        <div class="mt-8 pt-6 border-t border-gray-700/50">
-          <p v-if="statusMsg" :class="['text-sm mb-4 font-mono', isGenerating ? 'text-yellow-400' : 'text-green-400']">
-            {{ statusMsg }}
-          </p>
-
-          <button
-              @click="generatePayload"
-              :disabled="isGenerating"
-              class="w-full bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 text-white font-bold py-4 rounded-lg shadow-lg shadow-cyan-900/20 transition-all active:scale-95">
-            <span v-if="!isGenerating">SUMMON BEACON</span>
-            <span v-else class="flex items-center justify-center">
-              <svg class="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              FORGING...
-            </span>
-          </button>
         </div>
       </div>
     </div>
