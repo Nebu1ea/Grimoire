@@ -38,8 +38,15 @@ namespace Grimoire::Utils {
      */
     std::vector<unsigned char> HexDecode(const std::string& input_hex);
 
-
+    /**
+     * @brief 生成随机数
+     */
     std::string GenerateRandomString(size_t length);
+
+    /**
+     * @brief 获取当前系统用户名
+     */
+    std::string GetSystemUsername();
 } // namespace Grimoire::Utils
 
 

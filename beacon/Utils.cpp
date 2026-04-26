@@ -6,6 +6,15 @@
 #include <sodium.h> //引入 libsodium 核心库
 #include <stdexcept>
 #include <iostream>
+#include <random>
+#ifdef _WIN32
+#include <windows.h>
+#include <Lmcons.h>
+#else
+#include <unistd.h>
+#include <pwd.h>
+#endif
+
 
 namespace Grimoire::Utils
 {
@@ -138,11 +147,37 @@ namespace Grimoire::Utils
     }
 
     std::string GenerateRandomString(size_t length) {
-        // 简单实现
+        static const std::string charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         std::string result;
+        result.reserve(length); // 预分配内存，避免循环中反复 realloc
+
+        // std::random_device 依赖操作系统熵源（如 /dev/urandom 或 Windows BCrypt），接近真随机
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<size_t> dis(0, charset.size() - 1);
+
         for (size_t i = 0; i < length; ++i) {
-            result += 'a' + (i % 26);
+            result += charset[dis(gen)];
         }
         return result;
+    }
+
+
+    std::string GetSystemUsername() {
+        std::string username = "UNKNOWN";
+        #ifdef _WIN32
+            char buf[UNLEN + 1];
+            DWORD len = UNLEN + 1;
+            // GetUserName 在 SYSTEM 权限下会自动返回 "SYSTEM"
+            if (GetUserNameA(buf, &len)) {
+                username = buf;
+            }
+        #else
+            // Linux/macOS 获取当前用户
+            uid_t uid = getuid();
+            struct passwd* pw = getpwuid(uid);
+            if (pw) username = pw->pw_name;
+        #endif
+        return username;
     }
 }

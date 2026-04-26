@@ -58,6 +58,15 @@ namespace Grimoire::Crypto {
              */
             [[nodiscard]] std::string GetBeaconSessionFingerprint() const;
 
+
+
+
+            /**
+             * @brief hkdf
+             */
+            std::vector<unsigned char> hkdf_derive_aes256(const std::vector<unsigned char>& ikm,
+                                          const std::string& info, size_t out_len);
+
         private:
             // 协商后的共享会话密钥 (用于 AES-GCM 加密)
             std::vector<unsigned char> session_key_;

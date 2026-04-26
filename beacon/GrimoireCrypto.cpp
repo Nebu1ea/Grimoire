@@ -103,8 +103,8 @@ namespace Grimoire::Crypto {
         std::vector<unsigned char> raw_payload = Utils::Base64Decode(ciphertext_b64);
 
         // 检查最小长度
-        // 最小长度 = Nonce (IV) 长度 + Tag 长度
-        size_t min_encrypted_size = CRYPTO_NONCE_BYTES + CRYPTO_TAG_BYTES;
+        // 最小长度 = Nonce (IV) 长度 + Tag 长度 + SF
+        size_t min_encrypted_size = CRYPTO_NONCE_BYTES + CRYPTO_TAG_BYTES + crypto_hash_sha256_BYTES;
 
         if (raw_payload.size() < min_encrypted_size) {
             throw std::runtime_error("DecryptPayload: Payload size too short (Expected IV|CT|TAG).");
@@ -117,10 +117,25 @@ namespace Grimoire::Crypto {
             raw_payload.begin() + CRYPTO_NONCE_BYTES
         );
 
+        // 提取尾部 SF
+        std::vector<unsigned char> received_sf(raw_payload.end() - crypto_hash_sha256_BYTES, raw_payload.end());
+
+        // 校验以防被进攻或路由偏离
+        std::string received_sf_hex = Utils::HexEncode(received_sf);
+
+        // 确保 Utils::HexEncode 输出为小写（与 Python .hex() 对齐）
+        if (received_sf_hex != beacon_id_) {
+            throw std::runtime_error("DecryptPayload: Session Fingerprint mismatch. "
+                                     "Expected: " + beacon_id_.substr(0, 8) + "..., "
+                                     "Got: " + received_sf_hex.substr(0, 8) + "...");
+        }
+
+
+
         // 剩余部分是密文和 Tag (CT || Tag)
         std::vector<unsigned char> ciphertext_and_tag(
-            raw_payload.begin() + CRYPTO_NONCE_BYTES,
-            raw_payload.end()
+        raw_payload.begin() + CRYPTO_NONCE_BYTES,
+        raw_payload.end() - crypto_hash_sha256_BYTES
         );
 
         // 准备解密缓冲区
@@ -169,6 +184,40 @@ namespace Grimoire::Crypto {
         return Utils::Base64Encode(temp_public_key);
     }
 
+
+    std::vector<unsigned char> GrimoireCrypto::hkdf_derive_aes256(const std::vector<unsigned char>& ikm,
+                                                     const std::string& info,
+                                                     size_t out_len) {
+        if (out_len > 255 * crypto_kdf_hkdf_sha256_KEYBYTES) {
+            throw std::runtime_error("HKDF output length exceeds limit");
+        }
+
+        // Python salt=None 等价于 RFC 5869 规定的 32 字节全零
+        std::vector<unsigned char> salt(crypto_kdf_hkdf_sha256_KEYBYTES, 0);
+        std::vector<unsigned char> prk(crypto_kdf_hkdf_sha256_KEYBYTES);
+
+        // 1. HKDF-Extract: PRK = HMAC-SHA256(salt, IKM)
+        if (crypto_kdf_hkdf_sha256_extract(prk.data(), salt.data(), salt.size(),
+                                           ikm.data(), ikm.size()) != 0) {
+            throw std::runtime_error("HKDF-Extract failed");
+                                           }
+
+        // 2. HKDF-Expand: OKM = KDF(PRK, info, L)
+        std::vector<unsigned char> okm(out_len);
+        if (crypto_kdf_hkdf_sha256_expand(okm.data(), out_len,
+                                          info.data(), info.size(),
+                                          prk.data()) != 0) {
+            throw std::runtime_error("HKDF-Expand failed");
+                                          }
+
+        // 安全清理中间态
+        sodium_memzero(prk.data(), prk.size());
+        return okm;
+    }
+
+
+
+
     bool GrimoireCrypto::CompleteKeyDerivation(const std::string& server_public_key_b64) {
         // 检查临时私钥是否存在 (必须先调用 GenerateClientKey)
         if (temp_secret_key_.empty()) {
@@ -177,19 +226,39 @@ namespace Grimoire::Crypto {
 
         // 解码服务器永久公钥
         std::vector<unsigned char> server_public_key = Utils::Base64Decode(server_public_key_b64);
+
         if (server_public_key.size() != crypto_box_PUBLICKEYBYTES) {
             throw std::runtime_error("CompleteKeyDerivation: Invalid server public key size.");
         }
 
         // 协商共享会话密钥
-        session_key_.resize(crypto_box_BEFORENMBYTES);
-        if (crypto_box_beforenm(
+        session_key_.resize(crypto_scalarmult_curve25519_BYTES);
+        if (crypto_scalarmult_curve25519(
             session_key_.data(),
-            server_public_key.data(),
-            temp_secret_key_.data()          // 使用成员变量存储的临时私钥
+            temp_secret_key_.data(),      // 输入：本地临时私钥 (n)
+          server_public_key.data()        // 使用成员变量存储的临时私钥
         ) != 0) {
             throw std::runtime_error("CompleteKeyDerivation: Shared key derivation failed.");
         }
+
+        std::string HKDF_INFO = "grimoire-2025-0.0.1";
+
+        std::vector<unsigned char> ikm = session_key_;
+
+        std::vector<unsigned char> aes_key = hkdf_derive_aes256(
+            ikm,
+            HKDF_INFO,
+            32
+        );
+
+        session_key_.assign(aes_key.begin(), aes_key.end());
+
+
+
+        // char hex_out[crypto_scalarmult_curve25519_BYTES * 2 + 1];
+        // sodium_bin2hex(hex_out, sizeof(hex_out), session_key_.data(), crypto_scalarmult_curve25519_BYTES);
+        // std::cout << "[DEBUG] Raw Shared Secret Hex: " << hex_out << std::endl;
+
 
         // 清理内存中的临时私钥，防止泄露
         sodium_memzero(temp_secret_key_.data(), temp_secret_key_.size());
