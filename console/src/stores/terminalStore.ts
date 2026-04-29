@@ -147,8 +147,8 @@ export const useTerminalStore = defineStore('terminal', {
                     const outputRes = await apiClient.get(`/operator/task/output/${taskId}`);
 
                     // 假设后端在没结果时返回空字符串或特定的状态码
-                    if (outputRes.data && outputRes.data.result) {
-                        output = outputRes.data.result;
+                    if (outputRes.data && outputRes.data.output_content) {
+                        output = outputRes.data.output_content;
                     } else {
                         // 每 2 秒查一次
                         await this.sleep(2000);
@@ -186,7 +186,7 @@ export const useTerminalStore = defineStore('terminal', {
                 });
                 return null;
             } finally {
-                this.clearLogs(beaconId);
+                this.isSending[beaconId] = false;
             }
         },
 

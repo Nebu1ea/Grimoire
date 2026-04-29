@@ -195,16 +195,20 @@ onMounted(() => {
         class="z-0 flex-1 p-6 font-mono text-sm overflow-y-auto scrollbar-custom relative"
     >
       <div v-for="(log, index) in logs" :key="index" class="mb-3 leading-relaxed">
-        <span class="text-cyan-500">[{{ log.timestamp }}]:{{log.fullCommand}}</span>
         <div v-if="log.type === 'system'" class="text-cyan-700 whitespace-pre font-bold leading-none mb-4 opacity-80">
-          {{ log.content }}
+<!--          <span class="text-cyan-500">[{{ log.timestamp }}]:{{log.fullCommand}}</span>-->
+         {{ log.content }}
         </div>
+
+
 
         <div v-else class="flex flex-col">
           <div class="flex items-center space-x-2 opacity-50 text-[10px]">
             <span v-if="log.type === 'input'" class="text-white">OPERATOR_REQ</span>
             <span v-else-if="log.type === 'output'" class="text-green-500">BEACON_RESP</span>
           </div>
+
+
 
           <div
               :class="{
@@ -214,7 +218,9 @@ onMounted(() => {
               'text-green-400 whitespace-pre glow-text-green mt-1 p-4 bg-green-950/10 border-l-2 border-yellow-500 italic shadow-[0_0_15px_rgba(34,197,94,0.2)]': log.type === 'easter-egg'
             }"
           >
+
             {{ log.content }}
+
           </div>
         </div>
       </div>
@@ -228,7 +234,7 @@ onMounted(() => {
     <div class="bg-gray-900 border-t border-cyan-900/50 p-4">
       <div class="flex items-center group">
 
-      /* 这里第一次isSending其实是null，不过是null也不影响使用，因为当第一次输入指令的时候，就有了 */
+<!--      这里第一次isSending其实是null，不过是null也不影响使用，因为当第一次输入指令的时候，就有了-->
       <span :class="terminalStore.isSending[beaconId] ? 'text-gray-600' : 'text-cyan-500'" class="font-bold mr-3">
         {{ currentBeacon?.user || 'operator' }}@grimoire:~$
       </span>
@@ -287,7 +293,6 @@ onMounted(() => {
   50% { opacity: 0; }
 }
 
-/* 自定义滚动条 - 这种深蓝窄条最帅 */
 .scrollbar-custom::-webkit-scrollbar {
   width: 4px;
 }
