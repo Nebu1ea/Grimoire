@@ -34,7 +34,6 @@ class GrimoireCryptoManager:
     def derive_session_key(self, my_private: x25519.X25519PrivateKey, beacon_public_key: bytes) -> str:
         beacon_public = x25519.X25519PublicKey.from_public_bytes(beacon_public_key)
         shared = my_private.exchange(beacon_public)
-
         # 计算 AES 密钥
         derived = HKDF(
             algorithm=hashes.SHA256(),
@@ -44,8 +43,9 @@ class GrimoireCryptoManager:
         ).derive(shared)
 
         aes_key = derived
-        beacon_id_bytes = hashlib.sha256(aes_key).digest()
-        beacon_id = beacon_id_bytes.hex()
+        beacon_id_bytes = hashlib.sha256(aes_key).hexdigest()
+        beacon_id = beacon_id_bytes
+
         self.sessions[beacon_id] = AESGCM(aes_key)
 
         return  beacon_id
@@ -88,14 +88,12 @@ class GrimoireCryptoManager:
             raise ValueError("Payload too short")
 
         session_fingerprint_bytes = raw_payload[-Config.SF_LENGTH:]
-
         # 这里现在只剩 IV + CT||Tag
         encrypted_data = raw_payload[:-Config.SF_LENGTH]
 
         # 查找密钥
         beacon_id = session_fingerprint_bytes.hex()
         aesgcm = self.sessions.get(beacon_id)
-
         if not aesgcm:
             raise ValueError(f"No active session found: {beacon_id[:8]}")
 
@@ -112,3 +110,4 @@ class GrimoireCryptoManager:
         except InvalidTag:
             # 重新抛出，让上层捕获
             raise InvalidTag(f"GCM authentication failed: {beacon_id[:8]}.")
+
