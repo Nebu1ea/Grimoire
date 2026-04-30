@@ -46,7 +46,8 @@ const handleSend = async () => {
       type: 'error',
       fullCommand: fullCommand,
       content:`Beacon is fucking dead or staling, don't waste time.`,
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toLocaleTimeString(),
+      isHtml: false
     })
     return;
   }
@@ -57,7 +58,8 @@ const handleSend = async () => {
       type: 'error',
       fullCommand: fullCommand,
       content:`CRITICAL: Execution failed. Instruction '${cmd}' is undefined in Grimoire Protocol.Please input 'help' to get help.`,
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toLocaleTimeString(),
+      isHtml: false
     })
     return;
   }
@@ -88,7 +90,8 @@ const handleSend = async () => {
         type: 'system',
         fullCommand: 'whoami',
         content: currentBeacon.value.user,
-        timestamp: new Date().toLocaleTimeString()
+        timestamp: new Date().toLocaleTimeString(),
+        isHtml: false
         });
       break;
 
@@ -162,7 +165,8 @@ onMounted(() => {
 > TARGET_ID: ${beaconId}
 > STATUS: SESSION_ACTIVE
       `,
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toLocaleTimeString(),
+      isHtml: false,
     });
   }
   scrollToBottom();
@@ -218,8 +222,8 @@ onMounted(() => {
               'text-green-400 whitespace-pre glow-text-green mt-1 p-4 bg-green-950/10 border-l-2 border-yellow-500 italic shadow-[0_0_15px_rgba(34,197,94,0.2)]': log.type === 'easter-egg'
             }"
           >
-
-            {{ log.content }}
+            <div v-if="log.isHtml" v-html="log.content"></div>
+            <div v-else>{{ log.content }}</div>
 
           </div>
         </div>
