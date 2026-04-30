@@ -49,9 +49,10 @@ namespace Grimoire::Utils
             throw std::runtime_error("Base64Encode: Failed to encode data.");
         }
 
+
         // 返回 std::string (从 char* 转换，encoded_len 已经包含了 NULL 终止符)
-        // 我们需要减去 NULL 终止符的长度
-        return std::string(output_buffer.data());
+        // 需要减去 NULL 终止符的长度
+        return std::string(output_buffer.data(), encoded_len - 1);
     }
 
 
