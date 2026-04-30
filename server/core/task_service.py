@@ -1,6 +1,6 @@
 import json
 from typing import Dict, Any, Optional, List
-
+import base64
 from server.persistence.models import Task, TaskOutput, Beacon
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -120,11 +120,22 @@ class GrimoireTaskService:
             if 'task_id' in beacon_data and 'output' in beacon_data:
                 task_id = int(beacon_data['task_id'])   #得先转到整形，cpp比较死板，python端改
 
-                # 这里的output在beacon是base64编码过的，到时候前端取出来的时候再解码
-                output_str = beacon_data['output']
+                output_b64_from_beacon = beacon_data['output']
 
+                # 解码成原始字节流
+                raw_bytes = base64.b64decode(output_b64_from_beacon)
+
+                # 处理掉 GBK 乱码，统一转成 UTF-8 字节
+                try:
+                    # 尝试按 UTF-8 读取，如果成功
+                    clean_text = raw_bytes.decode('gbk').encode('utf-8')
+                except:
+                    clean_text = raw_bytes
+
+                # 把洗干净的字符串，重新变回 Base64 字符串存入数据库
+                clean_b64 = base64.b64encode(clean_text).decode('utf-8')
                 # 记录结果
-                self.record_output(db, task_id, output_str)
+                self.record_output(db, task_id, clean_b64)
 
             # 获取下一个待分配的任务
             next_task = self.get_pending_task(db, beacon_id)

@@ -94,10 +94,12 @@ def get_task_output(task_id):
 
         # 提取 Task 和 Output 对象
         task = task_info.task
-        output = task_info.output  # output 可能是 None，如果任务未执行完
+        task_output = task_info.output  # task_output 可能是 None，如果任务未执行完
 
         # 确定内容和格式
-        output_content = output.content if output else None
+        output_data = task_output.output_data if task_output else None
+
+        print(output_data)
 
         # 确定内容类型：前端依赖这个字段来决定是直接显示文本还是 Base64 解码
         if task.command in ['screenshot', 'download']:
@@ -116,7 +118,7 @@ def get_task_output(task_id):
 
             # 核心返回内容
             'output_type': content_type,
-            'output_content': output_content,  # 可能是 Base64 字符串或纯文本
+            'output_content': output_data,  # 可能是 Base64 字符串或纯文本
         })
 
 @operator_bp.route('/task/history/<string:beacon_id>', methods=['GET'])
