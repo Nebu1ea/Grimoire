@@ -1,6 +1,8 @@
 # Beacon回连的地方
 import base64
 import json
+import os
+
 from flask import Blueprint, request, jsonify, current_app
 
 from server.persistence.database import get_db_session
@@ -51,8 +53,10 @@ def initial_handshake():
         services = get_services()
         crypto_mgr = services['crypto_mgr']
         beacon_service = services['beacon_service']
+
         # 密钥派生和 ID 生成
         beacon_public_key_b64 = data.get('hello')
+
         if not beacon_public_key_b64:
             return jsonify({'error': 'Missing public key'}), 401
 
@@ -62,6 +66,7 @@ def initial_handshake():
         beacon_id = crypto_mgr.derive_session_key(
             my_private=crypto_mgr.private, beacon_public_key=beacon_public_key
         )
+
 
         # 注册 Beacon 会话到数据库
         with get_db_session() as db:
@@ -74,7 +79,11 @@ def initial_handshake():
                 initial_data={'username': data.get('user', 'Guest'), 'hostname': 'N/A'} # 简化指纹
             )
 
+            beacon_service.update_checkin_time(
+                db=db,beacon_id=beacon_id )
+
         server_public_key_b64 = base64.b64encode(crypto_mgr.get_publickey()).decode('utf-8')
+
         # 返回确认信息（无需返回 ID，因为它不通过网络传输）
         return jsonify({
             'welcome': server_public_key_b64,
@@ -125,6 +134,7 @@ X-Data-Ref:加密后的payload
 
 @api_bp.route('/send', methods=['POST'])
 def secure_communication():
+
     services = get_services()
     crypto_mgr = services['crypto_mgr']
     task_service = services['task_service']
@@ -135,6 +145,7 @@ def secure_communication():
         return jsonify({'error': 'Missing Authentication'}), 400    # 没发payload过来
     try:
         plaintext_bytes, beacon_id = crypto_mgr.grimoire_decrypt(payload)
+
     except Exception as e:
         return jsonify({'error': 'Decryption/Authentication failed'}), 401
 

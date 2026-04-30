@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -81,7 +83,7 @@ class TaskOutput(Base):
     task_id = Column(Integer, ForeignKey('tasks.task_id'), primary_key=True, nullable=False)
 
     # 结果内容
-    output_data = Column(Text, nullable=False)  # 原始回显数据
+    output_data = Column(LONGTEXT,nullable=False)  # 原始回显数据
 
     # 时间戳
     received_at = Column(DateTime, default=datetime.utcnow)
