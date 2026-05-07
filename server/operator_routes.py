@@ -99,8 +99,6 @@ def get_task_output(task_id):
         # 确定内容和格式
         output_data = task_output.output_data if task_output else None
 
-        print(output_data)
-
         # 确定内容类型：前端依赖这个字段来决定是直接显示文本还是 Base64 解码
         if task.command in ['screenshot', 'download']:
             content_type = 'base64'

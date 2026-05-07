@@ -190,7 +190,7 @@ export const useTerminalStore = defineStore('terminal', {
                             isHtml: false
                         });
 
-                        return contentBase64;
+                        return "下载成功";
                     }
 
 
@@ -211,7 +211,7 @@ export const useTerminalStore = defineStore('terminal', {
                             timestamp: new Date().toLocaleTimeString(),
                             isHtml: true
                         });
-                        return imgBase64;
+                        return "截屏成功";
                     }
 
                     let decodedOutput = new TextDecoder('utf-8').decode(bytes);
