@@ -76,7 +76,7 @@ def initial_handshake():
                 beacon_id=beacon_id,
                 ip_address=beacon_ip,
                 # 假设初始数据也在这里注册
-                initial_data={'username': data.get('user', 'Guest'), 'hostname': 'N/A'} # 简化指纹
+                initial_data={'user': data.get('user'), 'hostname': 'N/A'} # 简化指纹
             )
 
             beacon_service.update_checkin_time(

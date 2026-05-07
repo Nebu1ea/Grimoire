@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterView, useRoute } from 'vue-router'
 import AppLayout from './components/AppLayout.vue';
+import AiAssistant from '@/components/AiAssistant.vue';
 import { computed } from 'vue';
 
 const route = useRoute();
@@ -10,9 +11,12 @@ const isConsoleLayout = computed(() => route.meta.requiresAuth);
 </script>
 
 <template>
-  <AppLayout v-if="isConsoleLayout">
-    <RouterView />
-  </AppLayout>
+  <template v-if="isConsoleLayout">
+    <AppLayout>
+      <RouterView />
+    </AppLayout>
+    <AiAssistant />
+  </template>
 
   <RouterView v-else />
 </template>

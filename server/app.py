@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask
 from flask_jwt_extended import JWTManager
 
@@ -11,7 +13,8 @@ from server.operator_routes import operator_bp
 from server.persistence import database
 from server.scheduler import start_scheduler
 from shared.CryptoManager import GrimoireCryptoManager
-
+from server.core.ai_service import GrimoireAIService
+from server.ai_routes import ai_bp
 
 def create_app():
     # 实例化 Flask 应用
@@ -26,6 +29,9 @@ def create_app():
         print("FATAL: Database initialization failed.")
         print(f"Error Details: {e}")
         exit(1)
+
+    if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        app.config['AI_SERVICE'] = GrimoireAIService()
 
 
     app.config["JWT_SECRET_KEY"] = Config.JWT_SECRET_KEY
@@ -44,7 +50,7 @@ def create_app():
     app.register_blueprint(api_bp)
     app.register_blueprint(operator_bp)
     app.register_blueprint(auth_bp)
-
+    app.register_blueprint(ai_bp)
 
     start_scheduler(app)
 

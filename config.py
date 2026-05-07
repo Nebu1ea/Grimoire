@@ -46,4 +46,8 @@ class Config:
     # ========= 调度器  =========
     CLEANUP_INTERVAL_MINUTES = 10
 
+    # ========= AI适配器  =========
+    MODEL_PATH = BASE_DIR / "model" / "Qwen2.5-14B-Instruct-abliterated-v2"
+    ROUTER_ADAPTER_PATH = BASE_DIR / "model" / "adaptor" / "router_32-64"
+    CHARACTER_ADAPTER_PATH = BASE_DIR / "model" / "adaptor" / "character_epoch_3_2e-5"
 config = Config()

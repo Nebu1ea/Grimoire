@@ -19,7 +19,6 @@ class GrimoireBeaconService:
         """
         # 检查 Beacon ID 是否已存在，SQLAlchemy重载了等号，所以这里报错就别管了
         existing_beacon = db.query(Beacon).filter(Beacon.id == beacon_id).first()
-
         if existing_beacon:
             # 如果 ID 存在则更新其状态
             existing_beacon.last_checkin = datetime.utcnow()
@@ -33,7 +32,7 @@ class GrimoireBeaconService:
             id=beacon_id,
             ip_address=ip_address,
             hostname=initial_data.get('hostname', 'N/A'),
-            username=initial_data.get('login_user', 'N/A'),
+            username=initial_data.get('user', 'N/A'),
             os_info=initial_data.get('os', 'N/A'),
             first_seen=datetime.utcnow(),
             last_checkin=datetime.utcnow(),
